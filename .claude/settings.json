@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(py *)",
+      "PowerShell(python *)",
+      "PowerShell(pytest *)",
+      "PowerShell(git status*)",
+      "PowerShell(git diff*)",
+      "PowerShell(git log*)",
+      "PowerShell(.venv/Scripts/python.exe *)",
+      "PowerShell(.venv/Scripts/pip.exe *)",
+      "PowerShell(.venv/Scripts/pytest.exe *)",
+      "PowerShell(.venv/Scripts/adk.exe *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Select-String *)"
+    ]
+  }
+}

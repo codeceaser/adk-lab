@@ -1,0 +1,17 @@
+[project]
+name = "adk-lab"
+version = "0.0.1"
+description = "Empirical learning laboratory for the Google Agent Development Kit (ADK)."
+requires-python = ">=3.10"
+dependencies = [
+    "google-adk==2.6.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
