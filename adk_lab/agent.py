@@ -6,7 +6,9 @@ tool contract from them; nothing here wraps, registers or decorates them.
 
 from google.adk.agents import LlmAgent
 
-from .tools import get_assessment_unit, get_employee, validate_proposal_fields
+from .tools import get_employee, validate_proposal_fields
+
+from .wrapped_tools import wrapped_get_assessment_unit
 
 root_agent = LlmAgent(
     model="gemini-3.5-flash",
@@ -21,5 +23,5 @@ root_agent = LlmAgent(
         " tools when a request needs those capabilities. Never invent Employee"
         " or Assessment Unit information — report only what a tool returned."
     ),
-    tools=[get_employee, get_assessment_unit, validate_proposal_fields],
+    tools=[get_employee, wrapped_get_assessment_unit, validate_proposal_fields],
 )
