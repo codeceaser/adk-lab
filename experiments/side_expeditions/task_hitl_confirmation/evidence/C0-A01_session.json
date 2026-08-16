@@ -1,0 +1,261 @@
+{
+  "id": "cea562c6-eaf9-484d-8ece-8cb277fda553",
+  "appName": "c0_root_function_confirmation",
+  "userId": "user",
+  "state": {
+    "__session_metadata__": {
+      "displayName": "Use write_value to write the value \"alpha\" with..."
+    }
+  },
+  "events": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Use write_value to write the value \"alpha\" with run marker \"C0-A01\".  "
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-cf50ef65-5006-4afe-9e36-d508cfd8a1bd",
+      "author": "user",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": ""
+      },
+      "id": "d9b67f70-32a7-4ae6-833a-5429ba8c2ed7",
+      "timestamp": 1786915653.6687574
+    },
+    {
+      "modelVersion": "gemini-3.5-flash",
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "id": "call_2340699",
+              "args": {
+                "run_marker": "C0-A01",
+                "value": "alpha"
+              },
+              "name": "write_value"
+            },
+            "thoughtSignature": "EpcDCpQDARFNMg_9TV4_fp-eJnuqkxRsmQJSKGDfbCiKwvxJsTNfXfvoYAhOKG5Izqj6q1D1Yn3PKc-XCKz3d-X0GUvqGBuCqoHueJF3tLLMt2E6j1DjXzK_2x3J11-Tj0JflUwA_Tn4M6RBHPdyfDYPeqB7LxGdk0Dj5iNEJLnn7KjgRK5hTVofyC8mZaPAI1ZbDLBmwasRTKMYbEyyyUArfPUpAJEEXsHZ-evtip4gmas04OCDEhgKZmFihncWo4-hYtzr_6ToRpRHjzXjFAGvbZByKLYbioBahDPUp1mqnoAbGuyCEzqOKKyFUILwkH4QQBaCwchim2m0IG5lXjv1JEzY-3feoI17LAA6LJsUqWKQWEEtIYRQ0ubEMAlBZpOCEikXkc7c-zgLB7rT7ZkFkgz5pjDf6Z1g3CKVqaFcREspql-2N5FePg3qz8UOn8_g2Msk_3e--nSszD30JqkisVyv2pvJzA_6sb100gYt7I-5NlMSXLPeFRDaDnmymI6nnR2sbrRVNJbea7vYW2ELAxXQeH6BlB4="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "candidatesTokenCount": 29,
+        "promptTokenCount": 158,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 158
+          }
+        ],
+        "thoughtsTokenCount": 97,
+        "totalTokenCount": 284
+      },
+      "invocationId": "e-cf50ef65-5006-4afe-9e36-d508cfd8a1bd",
+      "author": "c0_root",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "c0_root@1"
+      },
+      "longRunningToolIds": [],
+      "id": "05f487d3-639a-4995-b782-90a331be822a",
+      "timestamp": 1786915653.7254188
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionResponse": {
+              "id": "call_2340699",
+              "name": "write_value",
+              "response": {
+                "error": "This tool call requires confirmation, please approve or reject."
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-cf50ef65-5006-4afe-9e36-d508cfd8a1bd",
+      "author": "c0_root",
+      "actions": {
+        "skipSummarization": true,
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {
+          "call_2340699": {
+            "hint": "Please approve or reject the tool call write_value() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
+            "confirmed": false
+          }
+        }
+      },
+      "nodeInfo": {
+        "path": "c0_root@1"
+      },
+      "id": "2adf7e42-d7f1-421b-9239-b0814ffa0ebd",
+      "timestamp": 1786915656.5478966
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "id": "adk-dbbdee2a-328d-4533-8046-6c1d6130cb46",
+              "args": {
+                "originalFunctionCall": {
+                  "id": "call_2340699",
+                  "args": {
+                    "run_marker": "C0-A01",
+                    "value": "alpha"
+                  },
+                  "name": "write_value"
+                },
+                "toolConfirmation": {
+                  "hint": "Please approve or reject the tool call write_value() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
+                  "confirmed": false
+                }
+              },
+              "name": "adk_request_confirmation"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      "invocationId": "e-cf50ef65-5006-4afe-9e36-d508cfd8a1bd",
+      "author": "c0_root",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "c0_root@1"
+      },
+      "longRunningToolIds": [
+        "adk-dbbdee2a-328d-4533-8046-6c1d6130cb46"
+      ],
+      "id": "77d9fd79-1fa3-41dc-9258-fa73435fa08e",
+      "timestamp": 1786915656.5488682
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionResponse": {
+              "id": "adk-dbbdee2a-328d-4533-8046-6c1d6130cb46",
+              "name": "adk_request_confirmation",
+              "response": {
+                "confirmed": true,
+                "payload": {
+                  "run_marker": "C0-A01",
+                  "value": "alpha"
+                }
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-cf50ef65-5006-4afe-9e36-d508cfd8a1bd",
+      "author": "user",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": ""
+      },
+      "id": "1b6e48e8-51b1-4119-bcd4-e3e06a8be182",
+      "timestamp": 1786915675.0089452
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionResponse": {
+              "id": "call_2340699",
+              "name": "write_value",
+              "response": {
+                "status": "ok",
+                "marker": "TOOL_EXECUTED variant=c0 tool=write_value run_marker=C0-A01 value=alpha"
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-cf50ef65-5006-4afe-9e36-d508cfd8a1bd",
+      "author": "c0_root",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "c0_root@1"
+      },
+      "id": "8d0c4323-8f89-4691-8a20-5cc955beace0",
+      "timestamp": 1786915675.0304523
+    },
+    {
+      "modelVersion": "gemini-3.5-flash",
+      "content": {
+        "parts": [
+          {
+            "text": "I have successfully written the value \"alpha\" with the run marker \"C0-A01\".",
+            "thoughtSignature": "EqcBCqQBARFNMg_VL7KP1QVlB1dmxaQGmixyPGLcSyewCi0KFOf8psLH0yq8AT0vwJ9OgBF2QUnkpLHW66I1Yh5oJc3rgqxzCZuE_RnKIkhDfyinybwMQhivquGyQe2EF-7oX0FPZFCDLgtxU_MZA--9JXmkJHR4qX6-fTVPiqHpO0P3MRvqVtYqBn3baJ8T7KvTsG3LB9a57lGs5K1QAQewO-7NbLvUDv8="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "candidatesTokenCount": 21,
+        "promptTokenCount": 329,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 329
+          }
+        ],
+        "thoughtsTokenCount": 13,
+        "totalTokenCount": 363
+      },
+      "invocationId": "e-cf50ef65-5006-4afe-9e36-d508cfd8a1bd",
+      "author": "c0_root",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "c0_root@1"
+      },
+      "id": "58a4c8ba-809e-4b8b-a298-cc1595711e96",
+      "timestamp": 1786915675.0502677
+    }
+  ],
+  "lastUpdateTime": 1786915675.0502677
+}

@@ -13,7 +13,7 @@ def get_employee(employee_id: str) -> dict:
     """Retrieve an authoritative Employee record by Employee ID.
 
     Args:
-        employee_id: The Employee ID to look up
+        employee_id: The Employee ID to look up, for example "E1001".
 
     Returns:
         On a match, a dict with status "success" and an "employee" record
@@ -35,16 +35,11 @@ def get_employee(employee_id: str) -> dict:
 
 
 def get_assessment_unit(assessment_unit_id: str) -> dict:
-    """Retrieve an authoritative Assessment Unit record using an exact
-        Assessment Unit ID supplied or established in the current context.
-
-        Use this tool only when an Assessment Unit ID is available.
-        Do not infer an Assessment Unit ID from an Assessment Unit name,
-        partial name, business label, or example.
-        If an exact ID is not available, ask the user for clarification.
+    """Retrieve an authoritative Assessment Unit record by Assessment Unit ID.
 
     Args:
-        assessment_unit_id: The Assessment Unit ID to look up
+        assessment_unit_id: The Assessment Unit ID to look up, for example
+            "AU-CARDS".
 
     Returns:
         On a match, a dict with status "success" and an "assessment_unit"
@@ -81,8 +76,10 @@ def validate_proposal_fields(
     Args:
         title: Proposed title of the Activity Proposal.
         description: Proposed description of the Activity Proposal.
-        managed_geography: Managed geography the proposal belongs to
-        assessment_unit_id: Assessment Unit ID the proposal belongs to
+        managed_geography: Managed geography the proposal belongs to, for
+            example "CANADA".
+        assessment_unit_id: Assessment Unit ID the proposal belongs to, for
+            example "AU-CARDS".
 
     Returns:
         A dict with status "valid" when all four fields are usable and
