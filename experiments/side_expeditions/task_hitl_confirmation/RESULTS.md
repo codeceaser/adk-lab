@@ -9,6 +9,7 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | ------- | --- | ------------- | --------------- | ---------: | ------ |
 | C0 | C0-A01 | Accept | 7 — Root continues | 0 before / 1 after | PASS |
 | C0 | C0-R01 | Reject | 5 — rejection honoured, tool not executed | 0 before / 0 after | PASS |
+| T0 | T0-01 | n/a | 7 — Root continues after task result | 1 | PASS |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -102,11 +103,104 @@ Directly demonstrated by this run:
   initiative. No retry logic exists in the variant code, and ADK did not
   re-execute anything; the second call originates from the model's turn.
 
+**T0-01 (no confirmation) — PASS.** Session
+`d92ae890-e3b9-4fc2-9f04-a1b16c5af7ea`, 8 events, exported to
+`evidence/T0-01_events.jsonl`. All seven T0 checkpoints occurred in order.
+
+```
+#1 21:57:36.198  user    branch=None                 TEXT "... run marker T0-01."
+#2 21:57:36.218  root    branch=None                 CALL worker       id=call_2146904
+                           args={"request": "Write the value \"alpha\" with run marker \"T0-01\"."}
+#3 21:57:39.096  worker  branch=worker@call_2146904  CALL write_value  id=call_641140
+                           args={"value":"alpha","run_marker":"T0-01"}
+#4 21:57:41.442  worker  branch=worker@call_2146904  RESP write_value  id=call_641140
+                           -> {"status":"ok","marker":"TOOL_EXECUTED variant=t0 ... T0-01 ..."}
+#5 21:57:41.473  worker  branch=worker@call_2146904  CALL finish_task  id=call_2234004
+                           args={"result":"Value 'alpha' successfully written under run marker 'T0-01'."}
+#6 21:57:43.793  worker  branch=worker@call_2146904  RESP finish_task  id=call_2234004
+                           -> {"result":"Task completed."}
+#7 21:57:43.809  user    branch=None                 RESP worker       id=call_2146904
+                           -> {"result":"Value 'alpha' successfully written under run marker 'T0-01'."}
+#8 21:57:43.834  root    branch=None                 TEXT "I have successfully written the value ..."
+```
+
+Tool-side log records one execution at `21:57:41.440542Z`. Execution count
+for `T0-01`: **1**.
+
+Directly demonstrated by this run:
+
+- Root delegates via an agent-shaped FunctionCall named `worker`
+  (id `call_2146904`). `transfer_to_agent` does not occur anywhere in the
+  session.
+- Child events carry `branch="worker@call_2146904"`, derived from the
+  delegation call id; Root's events carry `branch=None`.
+- `finish_task` is exposed in the trace as a call (#5) and a response (#6,
+  `"Task completed."`).
+- The delegation call is satisfied by a FunctionResponse re-using the
+  original id `call_2146904` (#7), whose payload is byte-identical to the
+  `finish_task` argument.
+- Event #7 carries no `modelVersion` and no `usageMetadata`, unlike the
+  model turns at #2/#3/#5/#8. Model-authored: #2, #3, #5, #8. Not
+  model-authored: #4, #6, #7.
+- Root, not the worker, produces the user-facing text (#8).
+
+Caveat: n=1. T0-02 and T0-03 are still outstanding, so repeatability of the
+task lifecycle is not yet established.
+
+Methodological note: inter-event gaps do not cleanly bracket model latency
+(#5 is model-authored but lands 31 ms after #4, while non-model #6 lands
+2.3 s later). Attribution in this file therefore relies on
+`modelVersion`/`usageMetadata`, not on timing.
+
 ## Failures Observed
 
 _(none yet)_
 
 ## Interpretation
 
-_(empty — anything here is explicitly labelled as inference, never mixed into
-Verified Findings)_
+Everything in this section is **inference**. It is a reading of the observations
+above, not an additional observation, and it must not be cited as a finding.
+
+### Inference: task mode is a bounded child branch, not a conversational handover
+
+Based on T0-01 (n=1), the `mode="task"` lifecycle appears to work like this:
+
+```
+Root turn            CALL worker(request=...)      id=call_2146904   [model]
+   |                 branch=None
+   v
+child branch         CALL write_value              [model]
+branch=worker@       RESP write_value              [not model]
+call_2146904         CALL finish_task              [model]
+   |                 RESP finish_task              [not model]
+   v
+back at Root         RESP worker  id=call_2146904  [not model]
+                     payload == finish_task args, verbatim
+                     TEXT to user                  [model]
+```
+
+1. **Root does not hand the conversation over.** It makes an agent-shaped
+   tool call and stays the owner of the turn. Support: the delegation is a
+   FunctionCall, no `transfer_to_agent` occurs, and Root authors the final
+   user-facing text.
+2. **The child executes on a bounded branch** keyed to the delegation call
+   id. Support: `branch=worker@call_2146904` on every child event versus
+   `branch=None` on Root's.
+3. **`finish_task` closes that branch.** Support: it is the last child event
+   before control returns. *Weakest link in the chain* — the trace shows
+   `finish_task` preceding the return, not that it causes it. No run has yet
+   omitted `finish_task`, so causation is not isolated. Settling this means
+   reading ADK source, which ground rule 9 defers until the expedition
+   concludes.
+4. **ADK synthesises the FunctionResponse that satisfies the original
+   delegation call.** Support: #7 re-uses id `call_2146904`, its payload is
+   byte-identical to the `finish_task` argument, and it carries neither
+   `modelVersion` nor `usageMetadata` while every genuine model turn in the
+   session carries both. No model turn produced it.
+
+Point 4 is the most strongly evidenced; point 3 is the most speculative.
+
+Scope limit: this is one run of one variant on one model. It says nothing
+about what happens when a confirmation has to cross the child-branch
+boundary — that is exactly what T1 tests, and no expectation about the T1
+outcome is recorded here.
