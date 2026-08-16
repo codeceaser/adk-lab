@@ -3,6 +3,12 @@
 Tests the task lifecycle on its own: delegation, tool execution inside the task,
 task completion, and return of the task result to Root.
 
+Control: this file is byte-identical to the T1 variant except for
+`require_confirmation` (False here, True in T1) and the VARIANT tag passed to
+the evidence recorder. Agent names, descriptions, instructions and the tool
+wrapper are deliberately the same, so any T0/T1 difference in behaviour is
+attributable to the confirmation flag alone.
+
 `finish_task` is injected by ADK for mode="task" agents; nothing here adds it.
 """
 
@@ -12,6 +18,7 @@ import sys
 from pathlib import Path
 
 from google.adk.agents import LlmAgent
+from google.adk.tools import FunctionTool
 
 # See the C0 variant for why the expedition root goes on sys.path.
 _EXPEDITION_ROOT = Path(__file__).resolve().parents[2]
@@ -36,7 +43,7 @@ def write_value(value: str, run_marker: str) -> dict:
 
 worker = LlmAgent(
     model=MODEL,
-    name="t0_worker",
+    name="worker",
     # The variable under test in T0: the task lifecycle on its own. ADK appends
     # FinishTaskTool to this agent's tools because of mode="task" (verified:
     # worker.tools == [write_value, FinishTaskTool:finish_task]).
@@ -47,16 +54,18 @@ worker = LlmAgent(
         " run marker provided.\n"
         "After the tool succeeds, complete the task."
     ),
-    # Plain function, no confirmation. T1 is this variant plus confirmation.
-    tools=[write_value],
+    # Wrapped in FunctionTool even though no confirmation is required, so that
+    # the tool object T0 and T1 hand to ADK is of the same type and differs by
+    # this Boolean only.
+    tools=[FunctionTool(write_value, require_confirmation=False)],
 )
 
 root_agent = LlmAgent(
     model=MODEL,
-    name="t0_root",
-    description="Delegates value writing to t0_worker.",
+    name="root",
+    description="Delegates value writing to worker.",
     instruction=(
-        "When the user asks to write a value, delegate to t0_worker with the"
+        "When the user asks to write a value, delegate to worker with the"
         " exact value and run marker provided."
     ),
     # Declaring the task agent as a sub-agent is the whole delegation wiring:
