@@ -650,7 +650,12 @@ live session (same 10 event ids, sha256 `099acb6e0112d8f6b04614ca4da1d95c`).
 
 The string `T1-R02` does not occur in `tool_executions.jsonl` at all.
 
-### Reject behaviour: 3/3 frozen single-rejection runs agree
+### Reject behaviour: the three FunctionTool single-rejection runs
+
+Written when these were the only frozen Reject runs. Scope later widened by
+"Reject behaviour: 4/4 frozen single-rejection runs agree" below, which adds
+C1-R01 over MCP. This table is kept for the per-run detail (event counts,
+call ids, branches) that the 4/4 summary does not repeat.
 
 | Property            | C0-R01 (Root)                  | T1-A03e (task)                | T1-R02 (task)                 |
 | ------------------- | ------------------------------ | ----------------------------- | ----------------------------- |
@@ -663,7 +668,7 @@ The string `T1-R02` does not occur in `tool_executions.jsonl` at all.
 
 **T1 Reject conclusion: rejecting a confirmation owned by a `mode="task"`
 child prevented tool execution in 2/2 runs, exactly as it did at Root level
-in C0-R01.** In all three the model then re-issued the call under a new id,
+in C0-R01, and later in C1-R01 over MCP.** In all three the model then re-issued the call under a new id,
 and in both task-mode runs `finish_task` was never reached, so control did
 not return to Root.
 
