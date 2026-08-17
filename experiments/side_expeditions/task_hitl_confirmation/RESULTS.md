@@ -22,6 +22,7 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | T1      | T1-X01 (exceptional trial)  | Reject ×3 then Accept | L — Root continues (4th cycle)             | 0 after 3 rejects / 1 after accept | EXCEPTIONAL TRIAL (see notes)         |
 | T1      | T1-A03d                     | Accept                | L — Root continues (no missing checkpoint) |       0 before / 1 after (derived) | PASS                                  |
 | T1      | T1-A03e (Reject run 1 of 2) | Reject                | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                  |
+| T1      | T1-R02 (Reject run 2 of 2)  | Reject                | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                  |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -615,6 +616,95 @@ Directly demonstrated by this run:
 
 This reproduces T1-X01's first cycle exactly, with different ids, in a run
 that was frozen deliberately rather than continued.
+
+**T1-R02 (Reject) — PASS.** Second of the two planned T1 Reject runs, and the
+last run of Phase 1. Session `3ede7af1-aba3-4411-9643-39acae43ae65`,
+10 events, exported to `evidence/T1-R02_events.jsonl`. Frozen after a single
+rejection with the follow-up confirmation unanswered. Byte-identical to the
+live session (same 10 event ids, sha256 `099acb6e0112d8f6b04614ca4da1d95c`).
+
+```
+#1  02:38:51.834  user    branch=None                framework  TEXT "... run marker T1-R02."
+#2  02:38:51.854  root    branch=None                MODEL      CALL worker       id=call_801667
+#3  02:39:07.518  worker  branch=worker@call_801667  MODEL      CALL write_value  id=call_1226970
+#4  02:39:27.610  worker  branch=worker@call_801667  framework  RESP write_value  id=call_1226970
+                            -> {"error":"This tool call requires confirmation, ..."}
+#5  02:39:27.611  worker  branch=worker@call_801667  framework  CALL adk_request_confirmation
+                            id=adk-52fb93d2-b962-4755-93d5-6338c5d59aa9
+                            args.originalFunctionCall.id = call_1226970
+      ---- tool execution count for T1-R02: 0 ----
+#6  02:39:46.683  user    branch=worker@call_801667  framework  RESP adk_request_confirmation
+                            -> {"confirmed": false, "payload": {...}}
+#7  02:39:46.702  worker  branch=worker@call_801667  framework  RESP write_value  id=call_1226970
+                            -> {"error": "This tool call is rejected."}
+      ---- tool execution count for T1-R02: 0 ----
+#8  02:39:46.716  worker  branch=worker@call_801667  MODEL      CALL write_value  id=call_859286  <- NEW id
+#9  02:40:08.823  worker  branch=worker@call_801667  framework  RESP write_value  id=call_859286
+                            -> {"error":"This tool call requires confirmation, ..."}
+#10 02:40:08.823  worker  branch=worker@call_801667  framework  CALL adk_request_confirmation
+                            id=adk-3eb1b0c1-7339-420f-9d0b-3e6e75aa0c5d
+                            (left unanswered; session frozen here)
+```
+
+The string `T1-R02` does not occur in `tool_executions.jsonl` at all.
+
+### Reject behaviour: 3/3 frozen single-rejection runs agree
+
+| Property            | C0-R01 (Root)                  | T1-A03e (task)                | T1-R02 (task)                 |
+| ------------------- | ------------------------------ | ----------------------------- | ----------------------------- |
+| events              | 9                              | 10                            | 10                            |
+| `write_value` calls | `call_1219303`, `call_1090589` | `call_746209`, `call_1659000` | `call_1226970`, `call_859286` |
+| rejected call       | first only                     | first only                    | first only                    |
+| tool body executed  | no                             | no                            | no                            |
+| `finish_task` calls | 0                              | 0                             | 0                             |
+| branches            | `None`                         | `None`, `worker@call_1817880` | `None`, `worker@call_801667`  |
+
+**T1 Reject conclusion: rejecting a confirmation owned by a `mode="task"`
+child prevented tool execution in 2/2 runs, exactly as it did at Root level
+in C0-R01.** In all three the model then re-issued the call under a new id,
+and in both task-mode runs `finish_task` was never reached, so control did
+not return to Root.
+
+The only structural difference between the Root-level and task-level Reject
+runs is the branch the confirmation lives on. The rejection semantics —
+`confirmed:false` recorded, pending call terminated against its original id,
+zero executions, model re-issues under a new id — are identical.
+
+### Phase 1 complete — required runs and decision-matrix position
+
+| Variant | Required by protocol  | Achieved                         |
+| ------- | --------------------- | -------------------------------- |
+| C0      | ≥1 Accept + ≥1 Reject | 1 Accept PASS, 1 Reject PASS     |
+| T0      | 3 clean runs          | 3/3 PASS                         |
+| T1      | 3 Accept + 2 Reject   | 3/3 Accept PASS, 2/2 Reject PASS |
+
+Not counted toward those totals: 4 INVALID runs (provider 503), 1 PARTIAL
+(A-K pass, 503 at L), 1 exceptional trial (T1-X01), 1 discarded session
+(duplicate marker, no click).
+
+Applying the brief's decision matrix to what the runs demonstrate:
+
+- C0 PASS → native confirmation works in this environment.
+- C0 PASS + T0 PASS → the basic task lifecycle is reliable here, so a T1
+  failure could not have been attributed to delegation or task completion
+  alone.
+- **T0 PASS + T1 PASS** → the matrix entry "T0 PASS, T1 FAIL" does not apply.
+  Task delegation composed with native `require_confirmation=True`
+  completed every checkpoint A-L. There is no failed checkpoint to report
+  for T1, and therefore no confirmation-continuation failure boundary of the
+  kind this expedition set out to locate.
+
+Stated precisely, and confined to what was run: **in google-adk 2.6.3 with
+`gemini-3.5-flash`, a `mode="task"` LlmAgent owning a FunctionTool with
+`require_confirmation=True` paused for confirmation, continued the same
+pending call after Accept, received the tool result, completed its task via
+`finish_task`, and returned the result to Root — in 3/3 Accept runs, with
+the tool body executing exactly once each. Rejecting prevented execution in
+2/2 runs.**
+
+This addresses the FunctionTool half of the question only. C1 and T2 (native
+`McpToolset` confirmation) are Phase 2 and have not been run; nothing here
+should be read as evidence about the MCP path.
 
 ## Failures Observed
 

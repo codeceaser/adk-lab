@@ -30,13 +30,13 @@ ADK is pinned. It is not upgraded or downgraded for this expedition.
 
 ## Variants
 
-| Variant | Composition                                                    | Status               |
-| ------- | -------------------------------------------------------------- | -------------------- |
-| C0      | Root + `write_value` FunctionTool, `require_confirmation=True` | scaffolded (Phase 1) |
-| T0      | Root → `mode="task"` worker → `write_value`, no confirmation   | scaffolded (Phase 1) |
-| T1      | Root → `mode="task"` worker → confirmed FunctionTool           | scaffolded (Phase 1) |
-| C1      | Root + `McpToolset` `write_value`, `require_confirmation=True` | Phase 2              |
-| T2      | Root → `mode="task"` worker → confirmed `McpToolset` tool      | Phase 2              |
+| Variant | Composition                                                    | Status                                              |
+| ------- | -------------------------------------------------------------- | --------------------------------------------------- |
+| C0      | Root + `write_value` FunctionTool, `require_confirmation=True` | Phase 1 complete — 1 Accept + 1 Reject, both PASS   |
+| T0      | Root → `mode="task"` worker → `write_value`, no confirmation   | Phase 1 complete — 3/3 PASS                         |
+| T1      | Root → `mode="task"` worker → confirmed FunctionTool           | Phase 1 complete — 3/3 Accept PASS, 2/2 Reject PASS |
+| C1      | Root + `McpToolset` `write_value`, `require_confirmation=True` | Phase 2                                             |
+| T2      | Root → `mode="task"` worker → confirmed `McpToolset` tool      | Phase 2                                             |
 
 **Phase 1** (C0/T0/T1) runs in the environment recorded above, unchanged.
 **Phase 2** (C1/T2) requires adding the `mcp` dependency; it starts only after
