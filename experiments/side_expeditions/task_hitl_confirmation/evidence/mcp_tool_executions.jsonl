@@ -1,0 +1,1 @@
+{"ts": "2026-08-17T12:50:25.258465+00:00", "variant": "c1", "tool": "write_value", "transport": "mcp-stdio", "value": "alpha", "run_marker": "C1-A01", "pid": 23024, "marker": "MCP_TOOL_EXECUTED variant=c1 tool=write_value run_marker=C1-A01 value=alpha"}

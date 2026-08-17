@@ -23,6 +23,7 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | T1      | T1-A03d                     | Accept                | L — Root continues (no missing checkpoint) |       0 before / 1 after (derived) | PASS                                  |
 | T1      | T1-A03e (Reject run 1 of 2) | Reject                | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                  |
 | T1      | T1-R02 (Reject run 2 of 2)  | Reject                | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                  |
+| C1      | C1-A01                      | Accept                | 7 — Root continues                         |                 0 before / 1 after | PASS                                  |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -705,6 +706,70 @@ the tool body executing exactly once each. Rejecting prevented execution in
 This addresses the FunctionTool half of the question only. C1 and T2 (native
 `McpToolset` confirmation) are Phase 2 and have not been run; nothing here
 should be read as evidence about the MCP path.
+
+**C1-A01 (Accept) — PASS.** First Phase 2 run: Root + native
+`McpToolset(require_confirmation=True)` over a stdio MCP server. Session
+`b86a1702-a3fc-4938-b7c1-8ab9cbf83f55`, 8 events, single invocation
+`e-3d482689-16d6-4125-b18e-3c0c12517bb5`, exported to
+`evidence/C1-A01_events.jsonl`. Pre-click count measured live at the pending
+state.
+
+```
+#1 12:49:37.477  user     framework  TEXT "Use write_value ... run marker C1-A01."
+#2 12:49:38.413  c1_root  MODEL      CALL write_value  id=call_2659067
+                            args={"value":"alpha","run_marker":"C1-A01"}
+#3 12:49:40.867  c1_root  framework  RESP write_value  id=call_2659067
+                            -> {"error":"This tool call requires confirmation, ..."}
+#4 12:49:40.867  c1_root  framework  CALL adk_request_confirmation
+                            id=adk-fe95ab00-0c14-493b-a99d-6583115e19bc
+                            args.originalFunctionCall.id = call_2659067
+#5 12:49:40.901  c1_root  MODEL      TEXT "I approve this tool call to write the value ..."
+      ---- MCP tool execution count for C1-A01: 0 (measured live, pre-click) ----
+#6 12:50:25.231  user     framework  RESP adk_request_confirmation
+                            -> {"confirmed": true, "payload": {...}}
+#7 12:50:25.262  c1_root  framework  RESP write_value  id=call_2659067
+                            -> {"content":[{"type":"text","text":"{... MCP_TOOL_EXECUTED ... C1-A01 ...}"}],
+                                "isError": false}
+#8 12:50:25.278  c1_root  MODEL      TEXT "I have successfully written the value ..."
+      ---- MCP tool execution count for C1-A01: 1 ----
+```
+
+Directly demonstrated by this run:
+
+- Native `McpToolset(require_confirmation=True)` produces a confirmation
+  request, and ADK Web presents it. No `FunctionTool` wrapper is involved.
+- The MCP tool body did not execute while the confirmation was pending
+  (count measured live at 0; the pre-Accept response is an error stub).
+- Accepting continued the *same* pending call: the session contains exactly
+  one `write_value` FunctionCall (`call_2659067`) and both the pre-Accept
+  stub and the post-Accept real result carry that id.
+- The MCP implementation executed **exactly once**, recorded independently
+  in the server subprocess (`mcp_tool_executions.jsonl`, pid 23024,
+  `12:50:25.258465Z`). The Phase 1 FunctionTool log stayed at 9 lines,
+  confirming the two evidence channels do not cross.
+- Root received the result and produced a subsequent response.
+
+Two differences from C0 worth recording, neither affecting the checkpoints:
+
+1. **The tool result arrives in an MCP envelope**, not as the plain dict C0
+   returned:
+   `{"content": [{"type": "text", "text": "<json>"}], "isError": false}`
+   — the tool's own return value is JSON-encoded inside `content[0].text`.
+2. **Event #5: the model emitted a text turn announcing "I approve this tool
+   call"** while the confirmation was still pending. C0 has no equivalent.
+   It is model-authored (`modelVersion` and `usageMetadata` both present) and
+   causally inert: the tool did not execute at #5, the count was still 0
+   afterwards, and execution followed only the genuine confirmation response
+   at #6 forty-five seconds later.
+
+On #6's provenance: the confirmation response is authored by `user` with no
+`modelVersion` and no `usageMetadata` — the same signature as C0-A01's
+click, and unlike every model-authored event in this session (#2, #5, #8).
+The operator confirmed they clicked Accept after being shown the pending
+state. Recorded because #5 made the run momentarily look as though approval
+had occurred without operator action; it had not. Note for future runs: the
+event record cannot by itself distinguish a UI click from an
+API-posted confirmation response, since ADK labels both `author="user"`.
 
 ## Failures Observed
 
