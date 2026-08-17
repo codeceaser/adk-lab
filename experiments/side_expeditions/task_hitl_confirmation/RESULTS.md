@@ -5,15 +5,18 @@ Environment: `google-adk` 2.6.3, `google-genai` 2.17.0, Python 3.13.9,
 
 Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 
-| Variant | Run             | Accept/Reject | Last checkpoint                            |         Tool count | Result                 |
-| ------- | --------------- | ------------- | ------------------------------------------ | -----------------: | ---------------------- |
-| C0      | C0-A01          | Accept        | 7 — Root continues                         | 0 before / 1 after | PASS                   |
-| C0      | C0-R01          | Reject        | 5 — rejection honoured, tool not executed  | 0 before / 0 after | PASS                   |
-| T0      | T0-01           | n/a           | 7 — Root continues after task result       |                  1 | PASS                   |
-| T0      | T0-02 attempt 1 | n/a           | 0 — Root's first model call                |                  0 | INVALID (provider 503) |
-| T0      | T0-02           | n/a           | 7 — Root continues after task result       |                  1 | PASS                   |
-| T0      | T0-03           | n/a           | 7 — Root continues after task result       |                  1 | PASS                   |
-| T1      | T1-A01          | Accept        | L — Root continues (no missing checkpoint) | 0 before / 1 after | PASS                   |
+| Variant | Run              | Accept/Reject | Last checkpoint                            |         Tool count | Result                      |
+| ------- | ---------------- | ------------- | ------------------------------------------ | -----------------: | --------------------------- |
+| C0      | C0-A01           | Accept        | 7 — Root continues                         | 0 before / 1 after | PASS                        |
+| C0      | C0-R01           | Reject        | 5 — rejection honoured, tool not executed  | 0 before / 0 after | PASS                        |
+| T0      | T0-01            | n/a           | 7 — Root continues after task result       |                  1 | PASS                        |
+| T0      | T0-02 attempt 1  | n/a           | 0 — Root's first model call                |                  0 | INVALID (provider 503)      |
+| T0      | T0-02            | n/a           | 7 — Root continues after task result       |                  1 | PASS                        |
+| T0      | T0-03            | n/a           | 7 — Root continues after task result       |                  1 | PASS                        |
+| T1      | T1-A01           | Accept        | L — Root continues (no missing checkpoint) | 0 before / 1 after | PASS                        |
+| T1      | T1-A02 attempt 1 | n/a           | none — Root's first model call             |                  0 | INVALID (provider 503)      |
+| T1      | T1-A02 attempt 2 | Accept        | K — task result returned to Root           | 0 before / 1 after | INVALID (provider 503 at L) |
+| T1      | T1-A02           | Accept        | L — Root continues (no missing checkpoint) | 0 before / 1 after | PASS                        |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -336,10 +339,86 @@ Caveat: n=1, Accept path only. T1-A02, T1-A03, T1-R01 and T1-R02 remain
 outstanding. A composition can succeed once and fail on repetition, so no
 conclusion about T1 is drawn from this run alone.
 
+**T1-A02 — PASS**, on the third attempt. Provider 503s aborted the first two,
+so three sessions carry the marker `T1-A02`. All three are preserved.
+
+| Attempt | Session                                | Events | Outcome                                                |
+| ------- | -------------------------------------- | -----: | ------------------------------------------------------ |
+| 1       | `ec048411-c0ed-4d60-bab1-a65d80cc2179` |      2 | 503 on Root's first model call — INVALID, 0 executions |
+| 2       | `bf59806a-82bd-4ef4-a155-40df97322801` |     11 | reached K, then 503 at L — INVALID, 1 execution        |
+| 3       | `c4d0da5b-8e5d-4173-a8b0-6a640957eef0` |     11 | complete A-L — **PASS**, 1 execution                   |
+
+Exported as `T1-A02-INVALID-503-pre`, `T1-A02-attempt2-503-at-L` and
+`T1-A02` respectively.
+
+**Marker collision — read the counts carefully.** `tool_executions.jsonl`
+holds **2** lines under the marker `T1-A02` (`01:02:14.406707Z` and
+`01:04:14.723342Z`). This is *not* a double execution. Attributing each
+execution to the session whose event window contains it:
+
+```
+attempt 2  window 01:01:11-01:03:05   execs=1   before Accept=0   after=1
+attempt 3  window 01:03:18-01:04:33   execs=1   before Accept=0   after=1
+```
+
+Each session executed the body exactly once. Per-marker counting is only
+unambiguous when markers are unique per attempt; later runs should use a
+distinct marker per attempt.
+
+Evidence-strength note: unlike T1-A01, whose pre-click count of 0 was
+measured live at the pending-confirmation state, these pre-click zeros are
+**derived** — no execution is logged between each confirmation request and
+its confirmation response. Weaker evidence, though corroborated by the
+pre-Accept `write_value` response being an error stub in both sessions.
+
+Continuation signature held in both completed attempts, matching T1-A01
+across three independent id sets:
+
+|                                  | T1-A01                | T1-A02 attempt 2      | T1-A02 (attempt 3)    |
+| -------------------------------- | --------------------- | --------------------- | --------------------- |
+| `write_value` CALLs in session   | 1 (`call_902796`)     | 1 (`call_1869450`)    | 1 (`call_1307347`)    |
+| stub + real result share that id | yes                   | yes                   | yes                   |
+| child branch                     | `worker@call_1728652` | `worker@call_2862498` | `worker@call_1700817` |
+| Accept event branch              | child branch          | child branch          | child branch          |
+
+**Attempt 2 separates checkpoints A-K from Root's closing turn.** The 503 hit
+Root's final model call *after* the task had completed and returned:
+
+```
+#6  01:02:14  user    branch=worker@call_2862498  RESP adk_request_confirmation (Accept)
+#7  01:02:14  worker  branch=worker@call_2862498  RESP write_value  id=call_1869450 (real result)
+#8  01:02:14  worker  branch=worker@call_2862498  CALL finish_task  id=call_667781
+#9  01:02:35  worker  branch=worker@call_2862498  RESP finish_task  -> "Task completed."
+#10 01:02:35  user    branch=None                 RESP worker       id=call_2862498
+#11 01:03:05  user    branch=None                 ERROR ServerError 503 UNAVAILABLE
+```
+
+Directly demonstrated by this session:
+
+- Checkpoints A-K completed without Root's closing model turn; the task
+  result reached Root (#10) before the model was next needed.
+- The tool body executed **exactly once** despite the invocation ending in
+  an error. The 503 did not cause re-execution, duplication or retry of the
+  already-completed side effect.
+
+Classification rationale: attempt 2 does not fit either scheme cleanly.
+`INVALID` is defined as the intended path never being entered, yet this run
+entered it and reached K; `FAIL` is defined as a framework path that begins
+and then stops, yet the stop was a provider 503 rather than an ADK
+execution-path defect. It is recorded as INVALID so it does not count toward
+the three Accept runs the protocol requires, while its A-K evidence is
+retained above as corroboration.
+
+Provider errors in this expedition are 503 `UNAVAILABLE` ("model is currently
+experiencing high demand"), not 429/quota: across the full ADK Web server log
+503 occurs 13 times and `UNAVAILABLE` 12 times, while `429`,
+`RESOURCE_EXHAUSTED` and `quota` occur zero times. All recorded error events
+carry `errorCode=ServerError` with the identical 503 payload.
+
 ## Failures Observed
 
-_(none yet — the 503 above is classified INVALID, not a failure of an ADK
-execution path)_
+_(none yet — the 503s above are provider-side and classified INVALID, not
+failures of an ADK execution path)_
 
 ## Interpretation
 
