@@ -1250,6 +1250,71 @@ user, whereas inside task mode it means control never returns to Root at
 all. This is inference, not a finding — the experiment did not vary the
 instruction, and doing so mid-expedition is barred by ground rule 9.
 
-Untested alternatives that could equally explain the loop: a framework-level
-rejection-to-task-termination path that exists but was not triggered here;
-model-specific retry behaviour that another model would not exhibit.
+Untested alternatives that could equally explain the loop: ~~a
+framework-level rejection-to-task-termination path that exists but was not
+triggered here~~ — **eliminated by source reading, see below**;
+model-specific retry behaviour that another model would not exhibit —
+**still untested**.
+
+### Post-hoc source reading (added after the expedition concluded)
+
+Ground rule 9 barred reading ADK source during the runs. With the results
+recorded and pushed, `google-adk` 2.6.3 was then read. This is a *source
+reading checked against the traces*, not a run observation and not pure
+inference; it belongs here rather than in Verified Findings because no
+experiment tested it. Full version in `FINAL_REPORT.md` §10.
+
+**The confirmation gate is identical in both tool types**
+(`tools/function_tool.py:293-314`, `tools/mcp_tool/mcp_tool.py:349-365`):
+
+```text
+if require_confirmation:
+    if not tool_context.tool_confirmation:
+        tool_context.request_confirmation(hint=...)
+        # FunctionTool ONLY: tool_context.actions.skip_summarization = True
+        return {'error': 'This tool call requires confirmation, please approve or reject.'}
+    elif not tool_context.tool_confirmation.confirmed:
+        return {'error': 'This tool call is rejected.'}
+return await self._invoke_callable(...)     # execute
+```
+
+**1. A rejection is an ordinary tool error response, not a control signal.**
+It sets no `escalate`, no `finish_task`, no `end_invocation`.
+`tool_confirmation.confirmed` is read in exactly four places in the package,
+all tool implementations — `bash_tool.py:175`, `computer_use_tool.py:131`,
+`function_tool.py:313`, `mcp_tool.py:364`. Nothing in `agents/llm/task/`,
+`tools/agent_tool.py`, `workflow/_llm_agent_wrapper.py` or the flows
+inspects it. **ADK 2.6.3 therefore has no rejection-terminates-task path**,
+which is why the first untested alternative above is struck out: its absence
+from the traces was not a sampling gap. The rejected call is closed, the
+agent loop continues, and the next move is the model's.
+
+**2. One `skip_summarization` asymmetry explains two behaviours previously
+recorded without explanation.** `FunctionTool` sets it on the *pending*
+branch (`function_tool.py:306`); `McpTool` never sets it; neither sets it on
+the *rejected* branch. It suppresses the follow-up model call that would
+otherwise summarise a tool response. Checked against all 14 confirmation
+runs:
+
+| Tool type                     | pending stub `skip_summarization` | model turn while pending |
+| ----------------------------- | --------------------------------- | ------------------------ |
+| FunctionTool (C0, T1), 7 runs | `True`                            | no, 7/7                  |
+| MCP (C1, T2), 7 runs          | unset                             | yes, 7/7                 |
+
+- Model narration at a pending confirmation, seen only in C1 and T2, is that
+  extra summarisation turn.
+- Concurrent pending confirmations are the same turn used differently: it is
+  a full LLM turn, so the model can emit another `write_value` call instead
+  of text. T2-A03 and T2-R02 show `CALL:write_value` where the other five MCP
+  runs show `TEXT`. This is why they were reachable in the MCP path and never
+  appeared in T1.
+- The rejected branch sets `skip_summarization` in neither tool type, so a
+  model turn always follows a rejection — confirmed 6/6, every frozen Reject
+  run has a model-authored fresh `CALL:write_value` immediately after the
+  rejected response.
+
+The reading retrodicts 14/14 runs. It was not tested by varying the code;
+doing so — for instance setting `skip_summarization` on the MCP pending
+branch, or varying the worker instruction — would be a separate controlled
+experiment. The instruction-side half of the inference above remains
+untested; the framework-side half is now settled.
