@@ -39,6 +39,7 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | R0.1    | R0.1-R03                     | Reject                  | Root responded with a cancellation         |                 0 before / 0 after | PASS (all 8; degraded model turn at #6)  |
 | R0.1    | R0.1-A02 (abandoned)         | none — not clicked      | abandoned at pending confirmation          |                                  0 | NOT A RUN (same session as R0.1-R03)     |
 | R0.1    | R0.1-A02b                    | Accept                  | Root responded with success                |       0 before (derived) / 1 after | PASS (no regression)                     |
+| R0.1    | R0.1-A03                     | Accept                  | Root responded with success                |       0 before (derived) / 1 after | PASS (no regression)                     |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -1595,24 +1596,50 @@ zero is reconstructed from timestamps — no execution is logged between the
 confirmation request (18:03:45) and its response (18:04:33). Same weaker
 standard as T1-A02 and T1-A03d. R0.1-A01's pre-click zero was measured live.
 
-### R0.1 Accept path: 2/2
+**R0.1-A03 (Accept) — PASS. Fresh session, no regression.** Session
+`224ace85-539a-476c-8952-768e771d5c34`, 12 events, exported to
+`evidence/R0.1-A03_events.jsonl`, byte-identical to the live session (sha256
+`ae7b7bf1bb82556aa5b5d7e6b5386122`).
 
-|                       | R0.1-A01                         | R0.1-A02b                                           |
-| --------------------- | -------------------------------- | --------------------------------------------------- |
-| delegation call id    | `call_994336`                    | `call_1616199`                                      |
-| `write_value` call id | `call_1105826`                   | `call_2153751`                                      |
-| confirmation id       | `adk-ec29d328`                   | `adk-b9c30443`                                      |
-| MCP executions        | 1                                | 1                                                   |
-| pre-click count       | measured live                    | derived                                             |
-| `finish_task` args    | "Successfully wrote the value …" | "Success: Value 'alpha' was successfully written …" |
+One delegation (`call_3066670`), one `write_value` call (`call_1635200`)
+continued under its own id, one confirmation (`adk-12905cb2`), one MCP
+execution (log 6 → 7), `finish_task` with `{"result": "Success: The value
+'alpha' has been successfully written under run marker 'R0.1-A03'."}`,
+delegation id re-used on the synthesized response, and Root closing with
+"I have successfully written the value "alpha" with the run marker
+"R0.1-A03"." Two branch values.
 
-Both success results are full sentences, against the terse literal
-`"cancelled"` in all three Reject runs — an asymmetry now holding across five
+**Evidence-strength note: pre-click count derived, not measured.** The
+attempt to read it live returned 1, meaning the confirmation had already
+been answered. Reconstructed from timestamps instead: no execution is logged
+between the confirmation request (18:13:05) and its response (18:13:37).
+
+### R0.1 Accept path: 3/3
+
+|                       | R0.1-A01                         | R0.1-A02b                                           | R0.1-A03                                                     |
+| --------------------- | -------------------------------- | --------------------------------------------------- | ------------------------------------------------------------ |
+| delegation call id    | `call_994336`                    | `call_1616199`                                      | `call_3066670`                                               |
+| `write_value` call id | `call_1105826`                   | `call_2153751`                                      | `call_1635200`                                               |
+| confirmation id       | `adk-ec29d328`                   | `adk-b9c30443`                                      | `adk-12905cb2`                                               |
+| MCP executions        | 1                                | 1                                                   | 1                                                            |
+| pre-click count       | **measured live**                | derived                                             | derived                                                      |
+| branch values         | 2                                | 2                                                   | 2                                                            |
+| `finish_task` args    | "Successfully wrote the value …" | "Success: Value 'alpha' was successfully written …" | "Success: The value 'alpha' has been successfully written …" |
+
+Every success result is a full sentence, against the terse literal
+`"cancelled"` in all three Reject runs — an asymmetry holding across all six
 R0.1 runs.
 
-**R0.1 status: 3/3 Reject PASS, 2/2 Accept PASS.** The Reject path meets the
-three-run bar the earlier variants were held to; the Accept path is one run
-short of it, and one of its two runs has only a derived pre-click count.
+**R0.1 status: 3/3 Reject PASS, 3/3 Accept PASS.** Both paths now meet the
+three-run bar the earlier variants were held to, with every identifier
+differing between runs.
+
+Asymmetry in evidence strength worth carrying forward: all three Reject runs
+have a **live** pre-click count, while only one of the three Accept runs
+does — A02b and A03 were both answered before a reading could be taken, so
+their zeros are reconstructed from timestamps. The Accept-side conclusion
+therefore rests on a weaker measurement of the property that matters most,
+namely that nothing executed while the confirmation was pending.
 
 The `finish_task` argument was the literal string `"cancelled"` in all three
 Reject runs. Three samples, still a model-chosen string rather than a
