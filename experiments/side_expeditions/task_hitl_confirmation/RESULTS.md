@@ -5,22 +5,23 @@ Environment: `google-adk` 2.6.3, `google-genai` 2.17.0, Python 3.13.9,
 
 Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 
-| Variant | Run                        | Accept/Reject         | Last checkpoint                            |                         Tool count | Result                                |
-| ------- | -------------------------- | --------------------- | ------------------------------------------ | ---------------------------------: | ------------------------------------- |
-| C0      | C0-A01                     | Accept                | 7 — Root continues                         |                 0 before / 1 after | PASS                                  |
-| C0      | C0-R01                     | Reject                | 5 — rejection honoured, tool not executed  |                 0 before / 0 after | PASS                                  |
-| T0      | T0-01                      | n/a                   | 7 — Root continues after task result       |                                  1 | PASS                                  |
-| T0      | T0-02 attempt 1            | n/a                   | 0 — Root's first model call                |                                  0 | INVALID (provider 503)                |
-| T0      | T0-02                      | n/a                   | 7 — Root continues after task result       |                                  1 | PASS                                  |
-| T0      | T0-03                      | n/a                   | 7 — Root continues after task result       |                                  1 | PASS                                  |
-| T1      | T1-A01                     | Accept                | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                  |
-| T1      | T1-A02 attempt 1           | n/a                   | none — Root's first model call             |                                  0 | INVALID (provider 503)                |
-| T1      | T1-A02 attempt 2           | Accept                | K — task result returned to Root           |                 0 before / 1 after | PARTIAL (A-K pass, provider 503 at L) |
-| T1      | T1-A02                     | Accept                | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                  |
-| T1      | T1-A03a attempt 1          | n/a                   | A — delegation only, 503 in child branch   |                                  0 | INVALID (provider 503)                |
-| T1      | T1-A03a attempt 2          | n/a                   | none — Root's first model call             |                                  0 | INVALID (provider 503)                |
-| T1      | T1-X01 (exceptional trial) | Reject ×3 then Accept | L — Root continues (4th cycle)             | 0 after 3 rejects / 1 after accept | EXCEPTIONAL TRIAL (see notes)         |
-| T1      | T1-A03d                    | Accept                | L — Root continues (no missing checkpoint) |       0 before / 1 after (derived) | PASS                                  |
+| Variant | Run                         | Accept/Reject         | Last checkpoint                            |                         Tool count | Result                                |
+| ------- | --------------------------- | --------------------- | ------------------------------------------ | ---------------------------------: | ------------------------------------- |
+| C0      | C0-A01                      | Accept                | 7 — Root continues                         |                 0 before / 1 after | PASS                                  |
+| C0      | C0-R01                      | Reject                | 5 — rejection honoured, tool not executed  |                 0 before / 0 after | PASS                                  |
+| T0      | T0-01                       | n/a                   | 7 — Root continues after task result       |                                  1 | PASS                                  |
+| T0      | T0-02 attempt 1             | n/a                   | 0 — Root's first model call                |                                  0 | INVALID (provider 503)                |
+| T0      | T0-02                       | n/a                   | 7 — Root continues after task result       |                                  1 | PASS                                  |
+| T0      | T0-03                       | n/a                   | 7 — Root continues after task result       |                                  1 | PASS                                  |
+| T1      | T1-A01                      | Accept                | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                  |
+| T1      | T1-A02 attempt 1            | n/a                   | none — Root's first model call             |                                  0 | INVALID (provider 503)                |
+| T1      | T1-A02 attempt 2            | Accept                | K — task result returned to Root           |                 0 before / 1 after | PARTIAL (A-K pass, provider 503 at L) |
+| T1      | T1-A02                      | Accept                | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                  |
+| T1      | T1-A03a attempt 1           | n/a                   | A — delegation only, 503 in child branch   |                                  0 | INVALID (provider 503)                |
+| T1      | T1-A03a attempt 2           | n/a                   | none — Root's first model call             |                                  0 | INVALID (provider 503)                |
+| T1      | T1-X01 (exceptional trial)  | Reject ×3 then Accept | L — Root continues (4th cycle)             | 0 after 3 rejects / 1 after accept | EXCEPTIONAL TRIAL (see notes)         |
+| T1      | T1-A03d                     | Accept                | L — Root continues (no missing checkpoint) |       0 before / 1 after (derived) | PASS                                  |
+| T1      | T1-A03e (Reject run 1 of 2) | Reject                | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                  |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -557,6 +558,63 @@ property holds, so the agreement is not an artefact of re-used identifiers.
 `require_confirmation=True` completed all checkpoints A-L in 3/3 clean runs,
 executing the tool body exactly once per run.** No checkpoint was missing in
 any Accept run. The two planned T1 Reject runs remain outstanding.
+
+**T1-A03e (Reject) — PASS.** First of the two planned T1 Reject runs.
+Session `586d0b8e-a252-4df8-86ae-178f80a2befe`, 10 events, exported to
+`evidence/T1-A03e-reject_events.jsonl`. Frozen after a single rejection with
+the follow-up confirmation left unanswered, mirroring C0-R01 so the two are
+comparable. The export is byte-identical to the live session (same 10 event
+ids, sha256 over the event list `31ccde6a2e009683ae50eb1ad46b2433`).
+
+Marker note: the run was issued under `T1-A03e`, an Accept-series name, but
+a single Reject was performed. The marker is unique and the evidence is
+unambiguous, so it is recorded as a Reject run under its issued name rather
+than relabelled; the in-session tool arguments read `T1-A03e`.
+
+```
+#1  02:34:14.696  user    branch=None                 framework  TEXT "... run marker T1-A03e."
+#2  02:34:14.718  root    branch=None                 MODEL      CALL worker       id=call_1817880
+#3  02:34:28.248  worker  branch=worker@call_1817880  MODEL      CALL write_value  id=call_746209
+#4  02:34:34.503  worker  branch=worker@call_1817880  framework  RESP write_value  id=call_746209
+                            -> {"error":"This tool call requires confirmation, ..."}
+#5  02:34:34.503  worker  branch=worker@call_1817880  framework  CALL adk_request_confirmation
+                            id=adk-63b53eb5-fefb-44f5-bfbb-cab526c3123f
+                            args.originalFunctionCall.id = call_746209
+      ---- tool execution count for T1-A03e: 0 ----
+#6  02:34:38.986  user    branch=worker@call_1817880  framework  RESP adk_request_confirmation
+                            -> {"confirmed": false, "payload": {...}}
+#7  02:34:39.000  worker  branch=worker@call_1817880  framework  RESP write_value  id=call_746209
+                            -> {"error": "This tool call is rejected."}
+      ---- tool execution count for T1-A03e: 0 ----
+#8  02:34:39.015  worker  branch=worker@call_1817880  MODEL      CALL write_value  id=call_1659000  <- NEW id
+#9  02:34:50.037  worker  branch=worker@call_1817880  framework  RESP write_value  id=call_1659000
+                            -> {"error":"This tool call requires confirmation, ..."}
+#10 02:34:50.038  worker  branch=worker@call_1817880  framework  CALL adk_request_confirmation
+                            id=adk-ac44e2ae-dd21-4e7b-915a-65b023f679e5
+                            args.originalFunctionCall.id = call_1659000
+                            (left unanswered; session frozen here)
+```
+
+Directly demonstrated by this run:
+
+- A Reject inside task mode records `{"confirmed": false, ...}` on the child
+  branch (#6) and ADK terminates the pending call with
+  `{"error": "This tool call is rejected."}` against its original id (#7).
+- The `write_value` body executed **zero** times, corroborated from both
+  sides: the string `T1-A03e` does not occur in `tool_executions.jsonl` at
+  all, and all three `write_value` responses in the session are error stubs,
+  none carrying a `TOOL_EXECUTED` marker.
+- The worker then re-issued the call under a **new** id (`call_1659000` vs
+  `call_746209`, #8, model-authored) producing a new confirmation request
+  (#10) — the same retry seen once at Root level in C0-R01 and three times
+  in T1-X01.
+- `finish_task` calls: **0**. Responses to Root: **0**. Control did not
+  return to Root.
+- Two branch values only: `None` (prompt and delegation) and
+  `worker@call_1817880` (everything from #3 on).
+
+This reproduces T1-X01's first cycle exactly, with different ids, in a run
+that was frozen deliberately rather than continued.
 
 ## Failures Observed
 
