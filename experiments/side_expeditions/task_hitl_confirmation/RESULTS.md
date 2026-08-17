@@ -5,35 +5,36 @@ Environment: `google-adk` 2.6.3, `google-genai` 2.17.0, Python 3.13.9,
 
 Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 
-| Variant | Run                         | Accept/Reject           | Last checkpoint                            |                         Tool count | Result                                   |
-| ------- | --------------------------- | ----------------------- | ------------------------------------------ | ---------------------------------: | ---------------------------------------- |
-| C0      | C0-A01                      | Accept                  | 7 — Root continues                         |                 0 before / 1 after | PASS                                     |
-| C0      | C0-R01                      | Reject                  | 5 — rejection honoured, tool not executed  |                 0 before / 0 after | PASS                                     |
-| T0      | T0-01                       | n/a                     | 7 — Root continues after task result       |                                  1 | PASS                                     |
-| T0      | T0-02 attempt 1             | n/a                     | 0 — Root's first model call                |                                  0 | INVALID (provider 503)                   |
-| T0      | T0-02                       | n/a                     | 7 — Root continues after task result       |                                  1 | PASS                                     |
-| T0      | T0-03                       | n/a                     | 7 — Root continues after task result       |                                  1 | PASS                                     |
-| T1      | T1-A01                      | Accept                  | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                     |
-| T1      | T1-A02 attempt 1            | n/a                     | none — Root's first model call             |                                  0 | INVALID (provider 503)                   |
-| T1      | T1-A02 attempt 2            | Accept                  | K — task result returned to Root           |                 0 before / 1 after | PARTIAL (A-K pass, provider 503 at L)    |
-| T1      | T1-A02                      | Accept                  | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                     |
-| T1      | T1-A03a attempt 1           | n/a                     | A — delegation only, 503 in child branch   |                                  0 | INVALID (provider 503)                   |
-| T1      | T1-A03a attempt 2           | n/a                     | none — Root's first model call             |                                  0 | INVALID (provider 503)                   |
-| T1      | T1-X01 (exceptional trial)  | Reject ×3 then Accept   | L — Root continues (4th cycle)             | 0 after 3 rejects / 1 after accept | EXCEPTIONAL TRIAL (see notes)            |
-| T1      | T1-A03d                     | Accept                  | L — Root continues (no missing checkpoint) |       0 before / 1 after (derived) | PASS                                     |
-| T1      | T1-A03e (Reject run 1 of 2) | Reject                  | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                     |
-| T1      | T1-R02 (Reject run 2 of 2)  | Reject                  | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                     |
-| C1      | C1-A01                      | Accept                  | 7 — Root continues                         |                 0 before / 1 after | PASS                                     |
-| C1      | C1-R01                      | Reject                  | 5 — rejection honoured, tool not executed  |                 0 before / 0 after | PASS                                     |
-| T2      | T2-A01 attempt 1            | n/a                     | none — Root's first model call             |                                  0 | INVALID (provider 503)                   |
-| T2      | T2-A01                      | Accept                  | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                     |
-| T2      | T2-A02                      | Accept                  | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                     |
-| T2      | T2-A03                      | Accept (1 of 2 pending) | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS (see concurrent-confirmations note) |
-| T2      | T2-R01 (Reject run 1 of 2)  | Reject                  | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                     |
-| T2      | T2-R02 (Reject run 2 of 2)  | Reject (1 of 2 pending) | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                     |
-| R0      | R0-R01 (delegation 1)       | Reject                  | finish_task with cancelled result          |                 0 before / 0 after | PASS (per-delegation scope)              |
-| R0      | R0-R01 (session)            | Reject                  | Root re-delegated instead of responding    |                 0 before / 0 after | FAIL — semantic retry (session scope)    |
-| R0.1    | R0.1-R01                    | Reject                  | Root responded with a cancellation         |                 0 before / 0 after | PASS (all 8 conditions)                  |
+| Variant | Run                          | Accept/Reject           | Last checkpoint                            |                         Tool count | Result                                   |
+| ------- | ---------------------------- | ----------------------- | ------------------------------------------ | ---------------------------------: | ---------------------------------------- |
+| C0      | C0-A01                       | Accept                  | 7 — Root continues                         |                 0 before / 1 after | PASS                                     |
+| C0      | C0-R01                       | Reject                  | 5 — rejection honoured, tool not executed  |                 0 before / 0 after | PASS                                     |
+| T0      | T0-01                        | n/a                     | 7 — Root continues after task result       |                                  1 | PASS                                     |
+| T0      | T0-02 attempt 1              | n/a                     | 0 — Root's first model call                |                                  0 | INVALID (provider 503)                   |
+| T0      | T0-02                        | n/a                     | 7 — Root continues after task result       |                                  1 | PASS                                     |
+| T0      | T0-03                        | n/a                     | 7 — Root continues after task result       |                                  1 | PASS                                     |
+| T1      | T1-A01                       | Accept                  | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                     |
+| T1      | T1-A02 attempt 1             | n/a                     | none — Root's first model call             |                                  0 | INVALID (provider 503)                   |
+| T1      | T1-A02 attempt 2             | Accept                  | K — task result returned to Root           |                 0 before / 1 after | PARTIAL (A-K pass, provider 503 at L)    |
+| T1      | T1-A02                       | Accept                  | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                     |
+| T1      | T1-A03a attempt 1            | n/a                     | A — delegation only, 503 in child branch   |                                  0 | INVALID (provider 503)                   |
+| T1      | T1-A03a attempt 2            | n/a                     | none — Root's first model call             |                                  0 | INVALID (provider 503)                   |
+| T1      | T1-X01 (exceptional trial)   | Reject ×3 then Accept   | L — Root continues (4th cycle)             | 0 after 3 rejects / 1 after accept | EXCEPTIONAL TRIAL (see notes)            |
+| T1      | T1-A03d                      | Accept                  | L — Root continues (no missing checkpoint) |       0 before / 1 after (derived) | PASS                                     |
+| T1      | T1-A03e (Reject run 1 of 2)  | Reject                  | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                     |
+| T1      | T1-R02 (Reject run 2 of 2)   | Reject                  | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                     |
+| C1      | C1-A01                       | Accept                  | 7 — Root continues                         |                 0 before / 1 after | PASS                                     |
+| C1      | C1-R01                       | Reject                  | 5 — rejection honoured, tool not executed  |                 0 before / 0 after | PASS                                     |
+| T2      | T2-A01 attempt 1             | n/a                     | none — Root's first model call             |                                  0 | INVALID (provider 503)                   |
+| T2      | T2-A01                       | Accept                  | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                     |
+| T2      | T2-A02                       | Accept                  | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                     |
+| T2      | T2-A03                       | Accept (1 of 2 pending) | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS (see concurrent-confirmations note) |
+| T2      | T2-R01 (Reject run 1 of 2)   | Reject                  | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                     |
+| T2      | T2-R02 (Reject run 2 of 2)   | Reject (1 of 2 pending) | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                     |
+| R0      | R0-R01 (delegation 1)        | Reject                  | finish_task with cancelled result          |                 0 before / 0 after | PASS (per-delegation scope)              |
+| R0      | R0-R01 (session)             | Reject                  | Root re-delegated instead of responding    |                 0 before / 0 after | FAIL — semantic retry (session scope)    |
+| R0.1    | R0.1-R01                     | Reject                  | Root responded with a cancellation         |                 0 before / 0 after | PASS (all 8 conditions)                  |
+| R0.1    | R0.1-A01 (Accept regression) | Accept                  | Root responded with success                |                 0 before / 1 after | PASS (no regression)                     |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -1359,9 +1360,67 @@ alone.
 their first run and the failure simply moved up a level, and the retry
 behaviour being suppressed is model-driven and varied between runs elsewhere
 in this expedition (T2 produced concurrent pending calls in 2 of 6 runs).
-`R0.1-R02`, `R0.1-R03` and an Accept regression (`R0.1-A01`) are outstanding;
-the Accept path has not been exercised under either the R0 or R0.1
-instruction set.
+`R0.1-R02` and `R0.1-R03` remain outstanding.
+
+**R0.1-A01 (Accept regression) — PASS. No regression.** Session
+`8ad59542-2353-462b-89d2-edd7f8fd0b59`, 12 events, exported to
+`evidence/R0.1-A01_events.jsonl`, byte-identical to the live session (sha256
+`4b875234e2618dafe2aedd10b9fa0280`). Pre-click count measured live.
+
+This run existed because both R0 and R0.1 rewrote the *success* line as well
+as adding rejection semantics: T2's "After the tool succeeds, complete the
+task" became "If write_value succeeds, complete the task with a success
+result". The Accept path had not been exercised under either instruction set,
+so a regression here would have invalidated the approach regardless of how
+well rejection behaved.
+
+```
+#2  16:14:53.148  root    branch=None                MODEL      CALL worker       id=call_994336
+#3  16:14:56.049  worker  branch=worker@call_994336  MODEL      CALL write_value  id=call_1105826
+#5  16:14:58.838  worker  branch=worker@call_994336  framework  CALL adk_request_confirmation
+                             id=adk-ec29d328-d92c-496b-aab4-d3cb3b32ae6e -> call_1105826
+#6  16:14:58.872  worker  branch=worker@call_994336  MODEL      TEXT "Please approve the tool execution ..."
+      ---- MCP execution count for R0.1-A01: 0 (measured live, pre-click) ----
+#7  16:47:22.713  user    branch=worker@call_994336  framework  RESP adk_request_confirmation
+                             -> {"confirmed": true, "payload": {...}}
+#8  16:47:22.749  worker  branch=worker@call_994336  framework  RESP write_value  id=call_1105826
+                             -> {"content":[{"type":"text","text":"{... MCP_TOOL_EXECUTED ... R0.1-A01 ...}"}]}
+#9  16:47:22.776  worker  branch=worker@call_994336  MODEL      CALL finish_task  id=call_3007243
+                             args={"result": "Successfully wrote the value \"alpha\" under the run marker \"R0.1-A01\"."}
+#10 16:47:26.474  worker  branch=worker@call_994336  framework  RESP finish_task -> "Task completed."
+#11 16:47:26.492  user    branch=None                framework  RESP worker id=call_994336 -> success result
+#12 16:47:26.526  root    branch=None                MODEL      TEXT "The value "alpha" has been successfully
+                             written with the run marker "R0.1-A01"."
+      ---- MCP execution count for R0.1-A01: 1 ----
+```
+
+| Check                                         | Result                                        |
+| --------------------------------------------- | --------------------------------------------- |
+| confirmation prompts = 1                      | PASS                                          |
+| MCP executions = 1                            | PASS (log 4 → 5)                              |
+| same pending call continued                   | PASS (`call_1105826` on both stub and result) |
+| exactly one `write_value` call                | PASS                                          |
+| `finish_task` succeeded with a success result | PASS (not `cancelled`)                        |
+| worker returned to Root                       | PASS                                          |
+| exactly one delegation                        | PASS                                          |
+| Root produced a final response                | PASS                                          |
+
+Both anticipated failure modes are ruled out: the rewritten worker
+instruction routed success correctly rather than reporting `cancelled`, and
+Root's four lines of cancellation semantics did not misfire on a success
+result — it produced a success message and did not re-delegate. Two branch
+values in the session.
+
+The Accept path is structurally identical to T2's three Accept runs: one
+`write_value` call continued under its own id, one execution, delegation id
+re-used on the synthesized response.
+
+Incidental observation, not a tested property: the confirmation sat pending
+for **32 minutes** (16:14:58 to 16:47:22), far longer than any other run in
+this expedition, and completed normally. A long-pending confirmation did not
+time out or lose the pending call. Single observation.
+
+**R0.1 status: 1 Reject PASS, 1 Accept PASS, both n=1.**
 
 ## Failures Observed
 
