@@ -35,6 +35,7 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | R0      | R0-R01 (session)             | Reject                  | Root re-delegated instead of responding    |                 0 before / 0 after | FAIL — semantic retry (session scope)    |
 | R0.1    | R0.1-R01                     | Reject                  | Root responded with a cancellation         |                 0 before / 0 after | PASS (all 8 conditions)                  |
 | R0.1    | R0.1-A01 (Accept regression) | Accept                  | Root responded with success                |                 0 before / 1 after | PASS (no regression)                     |
+| R0.1    | R0.1-R02                     | Reject                  | Root responded with a cancellation         |                 0 before / 0 after | PASS (all 8 conditions)                  |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -1420,7 +1421,61 @@ for **32 minutes** (16:14:58 to 16:47:22), far longer than any other run in
 this expedition, and completed normally. A long-pending confirmation did not
 time out or lose the pending call. Single observation.
 
-**R0.1 status: 1 Reject PASS, 1 Accept PASS, both n=1.**
+**R0.1-R02 (Reject) — PASS, all eight conditions.** Session
+`374bc5fa-b211-498c-a4a8-6f1ba5263b02`, 12 events, exported to
+`evidence/R0.1-R02_events.jsonl`, byte-identical to the live session (sha256
+`f39feae19800b8f9faa6ca96deeb4c59`). Pre-click count measured live.
+
+```
+#2  17:17:33.317  root    branch=None                MODEL      CALL worker       id=call_251898
+#3  17:17:35.944  worker  branch=worker@call_251898  MODEL      CALL write_value  id=call_999487
+#5  17:17:38.793  worker  branch=worker@call_251898  framework  CALL adk_request_confirmation
+                             id=adk-814d47eb-e2c3-43e5-80bf-061ab3ef42f8 -> call_999487
+      ---- MCP execution count for R0.1-R02: 0 (measured live, pre-click) ----
+#7  17:18:45.984  user    branch=worker@call_251898  framework  RESP adk_request_confirmation
+                             -> {"confirmed": false, "payload": {...}}
+#8  17:18:45.997  worker  branch=worker@call_251898  framework  RESP write_value  id=call_999487
+                             -> {"error": "This tool call is rejected."}
+#9  17:18:46.022  worker  branch=worker@call_251898  MODEL      CALL finish_task  id=call_3077952
+                             args={"result": "cancelled"}
+#10 17:18:48.596  worker  branch=worker@call_251898  framework  RESP finish_task -> "Task completed."
+#11 17:18:48.614  user    branch=None                framework  RESP worker id=call_251898
+                             -> {"result": "cancelled"}
+#12 17:18:48.645  root    branch=None                MODEL      TEXT "The operation was cancelled."
+      ---- MCP execution count for R0.1-R02: 0 ----
+```
+
+### R0.1 Reject path: 2/2, every identifier differing
+
+|                       | R0.1-R01                                                                             | R0.1-R02                       |
+| --------------------- | ------------------------------------------------------------------------------------ | ------------------------------ |
+| delegation call id    | `call_1776588`                                                                       | `call_251898`                  |
+| `write_value` call id | `call_4046227`                                                                       | `call_999487`                  |
+| confirmation id       | `adk-4112b9ec`                                                                       | `adk-814d47eb`                 |
+| `finish_task` args    | `{"result": "cancelled"}`                                                            | `{"result": "cancelled"}`      |
+| Root final text       | "The operation to write the value "alpha" with run marker "R0.1-R01" was cancelled." | "The operation was cancelled." |
+| MCP executions        | 0                                                                                    | 0                              |
+| branch values         | 2                                                                                    | 2                              |
+
+Both decisive slots held again: **#9** is `finish_task` rather than a
+re-issued `write_value`, and **#12** is a user-facing cancellation rather
+than a second delegation. Every identifier is fresh between the two runs, so
+the agreement is not an artefact of re-used ids.
+
+Two observations about the *content* of the model's output, as distinct from
+its behaviour:
+
+- The `finish_task` argument was the literal string `"cancelled"` in both
+  Reject runs, where the Accept run produced a full sentence. Consistent
+  across two samples; too thin a base for a downstream consumer to depend on
+  the exact string.
+- Root's wording varied between the two runs while the behaviour did not.
+  Expected for model-generated text, and worth separating from the
+  structural result.
+
+**R0.1 status: 2/2 Reject PASS, 1/1 Accept PASS.** `R0.1-R03` would complete
+the three-run bar the earlier variants were held to; `R0.1-A02` and
+`R0.1-A03` would bring the Accept side to T2's rigour.
 
 ## Failures Observed
 
