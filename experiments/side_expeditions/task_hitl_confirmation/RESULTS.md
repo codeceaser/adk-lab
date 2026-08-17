@@ -37,6 +37,8 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | R0.1    | R0.1-A01 (Accept regression) | Accept                  | Root responded with success                |                 0 before / 1 after | PASS (no regression)                     |
 | R0.1    | R0.1-R02                     | Reject                  | Root responded with a cancellation         |                 0 before / 0 after | PASS (all 8 conditions)                  |
 | R0.1    | R0.1-R03                     | Reject                  | Root responded with a cancellation         |                 0 before / 0 after | PASS (all 8; degraded model turn at #6)  |
+| R0.1    | R0.1-A02 (abandoned)         | none — not clicked      | abandoned at pending confirmation          |                                  0 | NOT A RUN (same session as R0.1-R03)     |
+| R0.1    | R0.1-A02b                    | Accept                  | Root responded with success                |       0 before (derived) / 1 after | PASS (no regression)                     |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -1475,10 +1477,17 @@ its behaviour:
   structural result.
 
 **R0.1-R03 (Reject) — PASS, all eight conditions, with a degraded model turn
-mid-flight.** Session `6581ef28-aed7-4b10-91fa-8277e7f6ecc1`, 12 events,
-exported to `evidence/R0.1-R03_events.jsonl`, byte-identical to the live
-session (sha256 `f505a3c39e0eadd071ad7ec129fcc236`). Pre-click count
-measured live.
+mid-flight.** Session `6581ef28-aed7-4b10-91fa-8277e7f6ecc1`, events #1-#12,
+exported to `evidence/R0.1-R03_events.jsonl`. Pre-click count measured live.
+
+Correction to the original wording, which said the export was byte-identical
+to the live session: that held when written, but the same session was later
+re-used for an abandoned `R0.1-A02` turn and is now 18 events. The 12-event
+export remains an exact record of the R0.1-R03 turn — its events hash to
+`f505a3c39e0eadd071ad7ec129fcc236`, identical to the first 12 events of the
+live session — and the full 18-event session is preserved separately as
+`evidence/R0.1-R03-session-with-abandoned-A02_events.jsonl`. See the
+abandoned-turn note after this entry.
 
 ```
 #2  17:35:00.191  root    branch=None                 MODEL      CALL worker       id=call_2316437
@@ -1535,10 +1544,75 @@ about it being harmless is made.
 | branch values         | 2                         | 2                         | 2                                 |
 | anomalies             | —                         | —                         | `MODEL_RETURNED_NO_CONTENT` at #6 |
 
-**R0.1 status: 3/3 Reject PASS, 1/1 Accept PASS.** The Reject path now meets
-the three-run bar the earlier variants were held to. `R0.1-A02` and
-`R0.1-A03` would bring the Accept side to T2's rigour; the Accept path still
-rests on a single run under these instructions.
+**Abandoned turn: `R0.1-A02` in session `6581ef28` — not a run.** The A02
+prompt was issued into the session that already held R0.1-R03 rather than a
+fresh one, so events #13-#18 are an Accept attempt appended to a session
+already containing a rejected-and-cancelled turn. It was abandoned at the
+pending confirmation with **0 executions**; `R0.1-A02` never appears in
+`mcp_tool_executions.jsonl`. It does not count toward the Accept total,
+because it does not replicate R0.1-A01's fresh-session conditions — both
+agents carried the earlier cancellation in context. Preserved rather than
+discarded, in `evidence/R0.1-R03-session-with-abandoned-A02_events.jsonl`.
+
+Worth recording despite being abandoned, because it exercised a clause no
+run had tested: both instructions end with "Attempt the write again only
+after the user makes a new, explicit request." A new explicit request was
+made at #13, and both agents correctly re-attempted — Root delegated
+(`call_671132`), the worker called `write_value` (`call_1173887`) and a
+confirmation was raised (`adk-0b4d0892`). So the earlier cancellation was
+not treated as permanently binding. First and only evidence of that clause
+working; one observation, from an abandoned turn.
+
+**R0.1-A02b (Accept) — PASS. Fresh session, no regression.** Session
+`215e6632-5dc7-46cd-ba97-20fa649600dd`, 12 events, exported to
+`evidence/R0.1-A02b_events.jsonl`, byte-identical to the live session
+(sha256 `c39d13c8ce8764ad62657b88f7bea82e`). Re-run of the abandoned A02 in a
+clean session.
+
+```
+#2  18:03:39.583  root    MODEL      CALL worker       id=call_1616199
+#3  18:03:42.571  worker  MODEL      CALL write_value  id=call_2153751
+#5  18:03:45.155  worker  framework  CALL adk_request_confirmation adk-b9c30443-... -> call_2153751
+#6  18:03:45.182  worker  MODEL      TEXT "I have requested to write ... approve or reject"
+#7  18:04:33.781  user    framework  RESP adk_request_confirmation -> {"confirmed": true, ...}
+#8  18:04:33.815  worker  framework  RESP write_value  id=call_2153751
+                             -> {"content":[{"type":"text","text":"{... MCP_TOOL_EXECUTED ... R0.1-A02b ...}"}]}
+#9  18:04:33.833  worker  MODEL      CALL finish_task  id=call_2361472
+                             args={"result": "Success: Value 'alpha' was successfully written under run marker 'R0.1-A02b'."}
+#10 18:04:36.950  worker  framework  RESP finish_task -> "Task completed."
+#11 18:04:36.963  user    framework  RESP worker id=call_1616199 -> success result
+#12 18:04:36.992  root    MODEL      TEXT "The value "alpha" has been successfully written ..."
+```
+
+One delegation, one `write_value` call continued under its own id, one
+confirmation, one MCP execution (log 5 → 6), `finish_task` with a success
+result, delegation id re-used on the synthesized response, Root responding
+with success. Two branch values.
+
+**Evidence-strength note: the pre-click count here is derived, not measured.**
+The confirmation was answered before a live reading could be taken, so the
+zero is reconstructed from timestamps — no execution is logged between the
+confirmation request (18:03:45) and its response (18:04:33). Same weaker
+standard as T1-A02 and T1-A03d. R0.1-A01's pre-click zero was measured live.
+
+### R0.1 Accept path: 2/2
+
+|                       | R0.1-A01                         | R0.1-A02b                                           |
+| --------------------- | -------------------------------- | --------------------------------------------------- |
+| delegation call id    | `call_994336`                    | `call_1616199`                                      |
+| `write_value` call id | `call_1105826`                   | `call_2153751`                                      |
+| confirmation id       | `adk-ec29d328`                   | `adk-b9c30443`                                      |
+| MCP executions        | 1                                | 1                                                   |
+| pre-click count       | measured live                    | derived                                             |
+| `finish_task` args    | "Successfully wrote the value …" | "Success: Value 'alpha' was successfully written …" |
+
+Both success results are full sentences, against the terse literal
+`"cancelled"` in all three Reject runs — an asymmetry now holding across five
+R0.1 runs.
+
+**R0.1 status: 3/3 Reject PASS, 2/2 Accept PASS.** The Reject path meets the
+three-run bar the earlier variants were held to; the Accept path is one run
+short of it, and one of its two runs has only a derived pre-click count.
 
 The `finish_task` argument was the literal string `"cancelled"` in all three
 Reject runs. Three samples, still a model-chosen string rather than a
