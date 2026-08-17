@@ -35,7 +35,7 @@ ADK is pinned. It is not upgraded or downgraded for this expedition.
 | C0      | Root + `write_value` FunctionTool, `require_confirmation=True` | Phase 1 complete — 1 Accept + 1 Reject, both PASS   |
 | T0      | Root → `mode="task"` worker → `write_value`, no confirmation   | Phase 1 complete — 3/3 PASS                         |
 | T1      | Root → `mode="task"` worker → confirmed FunctionTool           | Phase 1 complete — 3/3 Accept PASS, 2/2 Reject PASS |
-| C1      | Root + `McpToolset` `write_value`, `require_confirmation=True` | Phase 2 — scaffolded, not yet run                   |
+| C1      | Root + `McpToolset` `write_value`, `require_confirmation=True` | Phase 2 complete — 1 Accept + 1 Reject, both PASS   |
 | T2      | Root → `mode="task"` worker → confirmed `McpToolset` tool      | Phase 2 — not scaffolded                            |
 
 **Phase 1** (C0/T0/T1) ran in the environment recorded above and is complete

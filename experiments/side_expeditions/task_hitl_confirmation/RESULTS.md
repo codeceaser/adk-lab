@@ -24,6 +24,7 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | T1      | T1-A03e (Reject run 1 of 2) | Reject                | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                  |
 | T1      | T1-R02 (Reject run 2 of 2)  | Reject                | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                  |
 | C1      | C1-A01                      | Accept                | 7 — Root continues                         |                 0 before / 1 after | PASS                                  |
+| C1      | C1-R01                      | Reject                | 5 — rejection honoured, tool not executed  |                 0 before / 0 after | PASS                                  |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -703,9 +704,23 @@ pending call after Accept, received the tool result, completed its task via
 the tool body executing exactly once each. Rejecting prevented execution in
 2/2 runs.**
 
-This addresses the FunctionTool half of the question only. C1 and T2 (native
-`McpToolset` confirmation) are Phase 2 and have not been run; nothing here
-should be read as evidence about the MCP path.
+This addresses the FunctionTool half of the question only. See the Phase 2
+entry below for C1; T2 remains unrun.
+
+### Phase 2 status — C1 complete
+
+| Variant | Required by protocol                   | Achieved                     |
+| ------- | -------------------------------------- | ---------------------------- |
+| C1      | ≥1 Accept + ≥1 Reject                  | 1 Accept PASS, 1 Reject PASS |
+| T2      | 3 Accept + 2 Reject, only if T1 passed | not scaffolded, not run      |
+
+Decision-matrix position: the brief's "C0 PASS, C1 FAIL → MCP confirmation
+path is the problem" entry **does not apply**. Native
+`McpToolset(require_confirmation=True)` behaved as C0 did — confirmation
+requested, tool withheld while pending, exactly one execution on Accept
+continuing the original call id, zero executions on Reject.
+
+T1 passed, so T2 is in scope by the brief's own condition.
 
 **C1-A01 (Accept) — PASS.** First Phase 2 run: Root + native
 `McpToolset(require_confirmation=True)` over a stdio MCP server. Session
@@ -770,6 +785,69 @@ state. Recorded because #5 made the run momentarily look as though approval
 had occurred without operator action; it had not. Note for future runs: the
 event record cannot by itself distinguish a UI click from an
 API-posted confirmation response, since ADK labels both `author="user"`.
+
+**C1-R01 (Reject) — PASS.** Session
+`8dd8c502-ffeb-46aa-bc70-ca4d574b677c`, 11 events, exported to
+`evidence/C1-R01_events.jsonl`. Frozen after a single rejection with the
+follow-up confirmation unanswered, matching C0-R01, T1-A03e and T1-R02.
+Byte-identical to the live session (same 11 event ids, sha256
+`a2d24d3ad6f050d89c991b3832bf8ae9`). Pre-click count measured live.
+
+```
+#1  13:07:34.603  user     framework  TEXT "Use write_value ... run marker C1-R01."
+#2  13:07:34.626  c1_root  MODEL      CALL write_value  id=call_744348
+#3  13:07:36.900  c1_root  framework  RESP write_value  id=call_744348
+                             -> {"error":"This tool call requires confirmation, ..."}
+#4  13:07:36.900  c1_root  framework  CALL adk_request_confirmation
+                             id=adk-2fe1ad64-bfa1-4367-8a28-8e21957889dd
+                             originalFunctionCall.id = call_744348
+                             toolConfirmation.confirmed = False
+                             longRunningToolIds=['adk-2fe1ad64-...']
+#5  13:07:36.928  c1_root  MODEL      TEXT "... Please approve the tool call ..."
+      ---- MCP execution count for C1-R01: 0 (measured live, pre-click) ----
+#6  13:08:55.491  user     framework  RESP adk_request_confirmation
+                             -> {"confirmed": false, "payload": {...}}
+#7  13:08:55.506  c1_root  framework  RESP write_value  id=call_744348
+                             -> {"error": "This tool call is rejected."}
+      ---- MCP execution count for C1-R01: 0 ----
+#8  13:08:55.522  c1_root  MODEL      CALL write_value  id=call_1531628   <- NEW id
+#9  13:08:58.409  c1_root  framework  RESP write_value  id=call_1531628
+                             -> {"error":"This tool call requires confirmation, ..."}
+#10 13:08:58.409  c1_root  framework  CALL adk_request_confirmation
+                             id=adk-15c9c921-da0d-4e73-b4c1-556065b62419
+                             (left unanswered; session frozen here)
+#11 13:08:58.438  c1_root  MODEL      TEXT "... Please approve the tool call ..."
+```
+
+Directly demonstrated by this run:
+
+- Rejecting a native `McpToolset` confirmation records
+  `{"confirmed": false, ...}` and ADK terminates the pending call with
+  `{"error": "This tool call is rejected."}` against its original id.
+- The MCP tool body executed **zero** times, corroborated from both sides:
+  the string `C1-R01` does not occur in `mcp_tool_executions.jsonl` at all
+  (the file still holds only C1-A01's single line), and no `write_value`
+  response in the session carries an `MCP_TOOL_EXECUTED` marker.
+- The model re-issued under a **new** id (`call_1531628` vs `call_744348`),
+  producing a second confirmation request.
+
+### Reject behaviour: 4/4 frozen single-rejection runs agree
+
+| Run     | Composition         | `write_value` calls | first call rejected | tool executed |
+| ------- | ------------------- | ------------------: | ------------------- | ------------- |
+| C0-R01  | Root / FunctionTool |                   2 | yes                 | no            |
+| T1-A03e | task / FunctionTool |                   2 | yes                 | no            |
+| T1-R02  | task / FunctionTool |                   2 | yes                 | no            |
+| C1-R01  | Root / MCP          |                   2 | yes                 | no            |
+
+Rejection semantics are identical across both transports and both
+compositions, and the model's re-issue under a new id follows every
+rejection observed in this expedition.
+
+Model narration at the pending confirmation is **not Accept-specific**: C1-A01
+produced "I approve this tool call" (#5) and C1-R01 produced "Please approve
+the tool call" (#5, #11). Both are model-authored and causally inert, and
+their wording carries no information about the outcome.
 
 ## Failures Observed
 
