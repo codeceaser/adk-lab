@@ -5,3 +5,7 @@ __pycache__/
 .pytest_cache/
 .idea/
 .claude/settings.local.json
+# ADK Web runtime state (session.db and friends), created next to any agent
+# folder it serves. Runtime artifact, not evidence — exported session JSON
+# under experiments/**/evidence/ is what we keep.
+.adk/
