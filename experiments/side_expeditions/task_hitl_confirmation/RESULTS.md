@@ -25,6 +25,8 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | T1      | T1-R02 (Reject run 2 of 2)  | Reject                | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                  |
 | C1      | C1-A01                      | Accept                | 7 — Root continues                         |                 0 before / 1 after | PASS                                  |
 | C1      | C1-R01                      | Reject                | 5 — rejection honoured, tool not executed  |                 0 before / 0 after | PASS                                  |
+| T2      | T2-A01 attempt 1            | n/a                   | none — Root's first model call             |                                  0 | INVALID (provider 503)                |
+| T2      | T2-A01                      | Accept                | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                  |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -853,6 +855,81 @@ Model narration at the pending confirmation is **not Accept-specific**: C1-A01
 produced "I approve this tool call" (#5) and C1-R01 produced "Please approve
 the tool call" (#5, #11). Both are model-authored and causally inert, and
 their wording carries no information about the outcome.
+
+**T2-A01 (Accept) — PASS. Checkpoints A-L all occurred; no missing
+checkpoint.** The composition the expedition was built to test: task
+delegation + native MCP confirmation. Session
+`bdf11910-99a9-4ca1-9629-362e84d89cbe`, 12 events, exported to
+`evidence/T2-A01_events.jsonl`. Pre-click count measured live at the pending
+state.
+
+```
+#1  14:59:47.826  user    branch=None                 framework  TEXT "... run marker T2-A01."
+#2  14:59:47.855  root    branch=None                 MODEL      CALL worker       id=call_1317118
+#3  14:59:51.831  worker  branch=worker@call_1317118  MODEL      CALL write_value  id=call_1682897
+#4  14:59:54.459  worker  branch=worker@call_1317118  framework  RESP write_value  id=call_1682897
+                             -> {"error":"This tool call requires confirmation, ..."}
+#5  14:59:54.460  worker  branch=worker@call_1317118  framework  CALL adk_request_confirmation
+                             id=adk-db1901eb-96a1-4b16-9e3f-a92c0e7ad797
+                             originalFunctionCall.id = call_1682897
+#6  14:59:54.507  worker  branch=worker@call_1317118  MODEL      TEXT "I have initiated the request ..."
+      ---- MCP execution count for T2-A01: 0 (measured live, pre-click) ----
+#7  15:00:43.655  user    branch=worker@call_1317118  framework  RESP adk_request_confirmation
+                             -> {"confirmed": true, "payload": {...}}
+#8  15:00:43.682  worker  branch=worker@call_1317118  framework  RESP write_value  id=call_1682897
+                             -> {"content":[{"type":"text","text":"{... MCP_TOOL_EXECUTED ... T2-A01 ...}"}]}
+#9  15:00:43.706  worker  branch=worker@call_1317118  MODEL      CALL finish_task  id=call_2288846
+#10 15:00:46.340  worker  branch=worker@call_1317118  framework  RESP finish_task  -> "Task completed."
+#11 15:00:46.358  user    branch=None                 framework  RESP worker       id=call_1317118
+#12 15:00:46.382  root    branch=None                 MODEL      TEXT "The value "alpha" has been ..."
+      ---- MCP execution count for T2-A01: 1 ----
+```
+
+Checkpoint mapping: A=#2, B=#3, C=#5, D=observed live pre-click, E=#7, F=#7,
+G=MCP server log, H=#8, I=#9, J=#10, K=#11, L=#12.
+
+Directly demonstrated by this run:
+
+- Confirmation continuation held across the MCP boundary *inside* a task
+  child: exactly one `write_value` call in the session (`call_1682897`), with
+  both the pre-Accept stub and the post-Accept real result carrying that id.
+- The Accept re-entered on the child branch `worker@call_1317118`; the
+  session contains exactly two branch values.
+- The MCP implementation executed exactly once, recorded independently in the
+  server subprocess.
+- `finish_task` succeeded and the delegation call was satisfied by a
+  synthesized response re-using id `call_1317118`, payload byte-identical to
+  the `finish_task` argument.
+
+Structural agreement with the T1 Accept runs, every id differing:
+
+| Run     | Composition         | calls | continued same id | Accept on child branch | delegation id re-used |
+| ------- | ------------------- | ----: | ----------------- | ---------------------- | --------------------- |
+| T1-A01  | task / FunctionTool |     1 | yes               | yes                    | yes                   |
+| T1-A02  | task / FunctionTool |     1 | yes               | yes                    | yes                   |
+| T1-A03d | task / FunctionTool |     1 | yes               | yes                    | yes                   |
+| T2-A01  | task / MCP          |     1 | yes               | yes                    | yes                   |
+
+**T2-A01 attempt 1 — INVALID (provider 503).** Session
+`9716135c-35b0-44e1-aef8-21d5f7a1adb5`, 2 events, preserved as
+`evidence/T2-A01-INVALID-503-pre_events.jsonl`. Died on Root's first model
+call before any delegation, MCP connection or tool call; 0 executions. The
+successful run above re-used the marker `T2-A01` rather than taking a fresh
+one as the protocol prescribes; counting stays unambiguous only because this
+attempt executed the tool zero times. Both session ids are recorded here so
+the pairing is explicit.
+
+**Evidence note — the `variant=c1` tag on T2 runs.** T2 points at C1's
+`write_value_mcp_server.py` itself rather than a copy, so the two variants
+exercise byte-identical server code. The tag in
+`mcp_tool_executions.jsonl` is therefore the server's, and T2 runs appear as
+`variant=c1`. Attribution is by `run_marker`, which is unique per run. The
+log currently reads:
+
+```
+C1-A01   1
+T2-A01   1
+```
 
 ## Failures Observed
 
