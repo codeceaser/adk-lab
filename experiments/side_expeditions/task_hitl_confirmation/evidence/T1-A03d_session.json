@@ -1,0 +1,429 @@
+{
+  "id": "10b04331-fb5e-4dc8-9d09-bb3ba476b3ee",
+  "appName": "t1_task_function_confirmation",
+  "userId": "user",
+  "state": {
+    "__session_metadata__": {
+      "displayName": "Write the value \"alpha\" with run marker \"T1-A03d\"."
+    }
+  },
+  "events": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Write the value \"alpha\" with run marker \"T1-A03d\"."
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-423e38eb-3213-43ff-8ada-d8fc9c9400c3",
+      "author": "user",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": ""
+      },
+      "id": "bc4b8276-4bc4-47ea-9caf-32b1e605e7a4",
+      "timestamp": 1786933854.9526894
+    },
+    {
+      "modelVersion": "gemini-3.5-flash",
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "id": "call_1346097",
+              "args": {
+                "request": "Write the value \"alpha\" with run marker \"T1-A03d\"."
+              },
+              "name": "worker"
+            },
+            "thoughtSignature": "EtEDCs4DARFNMg9YXJqvre9yHv1g0jyPUuYo6IuWTR6jyBnfwUl365M567BFSPt_3H_shx6chTPBlS6GLSXrHLWhxn0nrgGCGHMNa0aCHTTGjnfaZA66cNF30nSW6XdG6Cl5Sm0QHnjx3BzrfkD-SMz-uj3NQ3-gCJn0XE3V5B-004DYZupPVHvita-TyT9pDNSu8mbnO65NDHc8O3Sdp4GtKAttFaaPn8Sn5f9P4R-JhAd7B0gV36RGZjsHvLgoNuo-Im4Umy4G1iQjvr-673oVsa_mFHhUtMj1WdJpHa_wuO0dJEfoeIGEKsuwP7AU2VB9JQWMT1NJwKnDRoGFQZ6Zf_zqW8_ykTEaBNnLJn7R5rbfYR3FPhldWSeVlRRdNSoP-bYOYEIGyiyelW2MKXv_852GfbifugalvU1MfgaR1x5h5qfQOdwla-hCI1vTRgX4AH8ElGkiN53dzXVKTalBvBf8YPOQu24eHryAHz336Rn1haMtVeq4jM7kuJiSk6GrV6hP43fYLsMzep4tGaVq94ZVshY2saxIYLvCsNyGF-1njsjhoWp3PqT6T-Fk9zzb2MmlQYE6AbRAnxl3_3ogM8GtqO6Ud2F1Jqa5tUiVy_H8"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "candidatesTokenCount": 31,
+        "promptTokenCount": 165,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 165
+          }
+        ],
+        "thoughtsTokenCount": 92,
+        "totalTokenCount": 288
+      },
+      "invocationId": "e-423e38eb-3213-43ff-8ada-d8fc9c9400c3",
+      "author": "root",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1"
+      },
+      "longRunningToolIds": [],
+      "id": "5c91a780-a31b-4ce3-91ae-dfb7063997c1",
+      "timestamp": 1786933854.971691
+    },
+    {
+      "modelVersion": "gemini-3.5-flash",
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "id": "call_2339869",
+              "args": {
+                "value": "alpha",
+                "run_marker": "T1-A03d"
+              },
+              "name": "write_value"
+            },
+            "thoughtSignature": "EscCCsQCARFNMg8LFMZC6W1nu09rhugKZ38p2R8IMfQK2zMElMeyvDUKns-YdmMxzR76qMHqBrwGwHd0Mq-khiLVr4TLq9Gh9iL7piqIC6g2qaYgpuHSNbVOjrKd77lndOZdMVnCtmOpEXDim0874ZGuDWAh7Fx8YZziDOXdRI1nRnrETvcPFFsgYt0TVJ1pn77eNeaRlZa5f_MC6Q1pU5-y5w4zOIvCLcvZhhsTV3nCVKth97shflE3OzzLixKM5Zkg_s9OQzecw-lH2Qq_uGnHpfXtc7HhucQNN9n7VGL13lSglbUJdNmUCeEpoTzVr7M1--7Y433EbxE5cIEQhlYEFcjN-EV7JzXUjsydyyDXdBMsSLcRfECMX3xaLyhnIqcjdOfAx5jKs6Gnx6pn5SJtMtXhk0Wp2dIwE5AuhV5HJVH11t4oR3sR"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "candidatesTokenCount": 30,
+        "promptTokenCount": 472,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 472
+          }
+        ],
+        "thoughtsTokenCount": 79,
+        "totalTokenCount": 581
+      },
+      "invocationId": "e-423e38eb-3213-43ff-8ada-d8fc9c9400c3",
+      "author": "worker",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_1346097"
+      },
+      "longRunningToolIds": [],
+      "branch": "worker@call_1346097",
+      "isolationScope": "call_1346097",
+      "id": "0feb9480-ce43-4dcc-8367-3bfec2bfbe79",
+      "timestamp": 1786933862.5276206
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionResponse": {
+              "id": "call_2339869",
+              "name": "write_value",
+              "response": {
+                "error": "This tool call requires confirmation, please approve or reject."
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-423e38eb-3213-43ff-8ada-d8fc9c9400c3",
+      "author": "worker",
+      "actions": {
+        "skipSummarization": true,
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {
+          "call_2339869": {
+            "hint": "Please approve or reject the tool call write_value() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
+            "confirmed": false
+          }
+        }
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_1346097"
+      },
+      "branch": "worker@call_1346097",
+      "isolationScope": "call_1346097",
+      "id": "70a27637-b3af-4e27-a602-231c4b4b1425",
+      "timestamp": 1786933874.175103
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "id": "adk-6417f692-df7a-4430-8d26-26a9d079d8b5",
+              "args": {
+                "originalFunctionCall": {
+                  "id": "call_2339869",
+                  "args": {
+                    "value": "alpha",
+                    "run_marker": "T1-A03d"
+                  },
+                  "name": "write_value"
+                },
+                "toolConfirmation": {
+                  "hint": "Please approve or reject the tool call write_value() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
+                  "confirmed": false
+                }
+              },
+              "name": "adk_request_confirmation"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      "invocationId": "e-423e38eb-3213-43ff-8ada-d8fc9c9400c3",
+      "author": "worker",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_1346097"
+      },
+      "longRunningToolIds": [
+        "adk-6417f692-df7a-4430-8d26-26a9d079d8b5"
+      ],
+      "branch": "worker@call_1346097",
+      "isolationScope": "call_1346097",
+      "id": "a07fd152-8313-4449-8808-4b11a3962482",
+      "timestamp": 1786933874.175384
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionResponse": {
+              "id": "adk-6417f692-df7a-4430-8d26-26a9d079d8b5",
+              "name": "adk_request_confirmation",
+              "response": {
+                "confirmed": true,
+                "payload": {
+                  "value": "alpha",
+                  "run_marker": "T1-A03d"
+                }
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-423e38eb-3213-43ff-8ada-d8fc9c9400c3",
+      "author": "user",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": ""
+      },
+      "branch": "worker@call_1346097",
+      "isolationScope": "call_1346097",
+      "id": "71fb0ad2-fc25-4402-9b6d-f12903c8a01f",
+      "timestamp": 1786933893.7394712
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionResponse": {
+              "id": "call_2339869",
+              "name": "write_value",
+              "response": {
+                "status": "ok",
+                "marker": "TOOL_EXECUTED variant=t1 tool=write_value run_marker=T1-A03d value=alpha"
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-423e38eb-3213-43ff-8ada-d8fc9c9400c3",
+      "author": "worker",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_1346097"
+      },
+      "branch": "worker@call_1346097",
+      "isolationScope": "call_1346097",
+      "id": "6eb3c6a9-b2b4-40dd-b782-c342509aeb82",
+      "timestamp": 1786933893.7554011
+    },
+    {
+      "modelVersion": "gemini-3.5-flash",
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "id": "call_1766659",
+              "args": {
+                "result": "Value \"alpha\" has been successfully written under run marker \"T1-A03d\"."
+              },
+              "name": "finish_task"
+            },
+            "thoughtSignature": "EpECCo4CARFNMg9jLkUvfSFjEUgAp9qn1SRWUbXzxbIfek7_hyYk89Xhp_W8DlkiQ0mJHE7yOBubT68NlLWTCZDkd6gW8x0Zyy2Mo3MIl4LM3Uhy94ObEHVt85qX2BSHJR284drrTvt-UwTAZorPreQesTiTtMsdswhy25EwU1dIz_GwM99lnek_t0OUbWRLnhcvge9BSWSsS79oWs2WOJFVgBfPDxLGxV4Bttb-if9lQPPLiRibE1rZ5FSBZiGdCF1v0Nc5xGXtHjzy-GKYbxpzJN6c2yUTY3jjWunEBjWgK24EjmWvv5CDQasuqO3EqqhGwalDVOE-EUkNW9M_z0FggzUfVcmDsTSvDmHkcZ7rFPjy"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "candidatesTokenCount": 35,
+        "promptTokenCount": 627,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 627
+          }
+        ],
+        "thoughtsTokenCount": 36,
+        "totalTokenCount": 698
+      },
+      "invocationId": "e-423e38eb-3213-43ff-8ada-d8fc9c9400c3",
+      "author": "worker",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_1346097"
+      },
+      "longRunningToolIds": [],
+      "branch": "worker@call_1346097",
+      "isolationScope": "call_1346097",
+      "id": "c423527e-d5f3-4f24-8e6b-9a771ceed23b",
+      "timestamp": 1786933893.7698298
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionResponse": {
+              "id": "call_1766659",
+              "name": "finish_task",
+              "response": {
+                "result": "Task completed."
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-423e38eb-3213-43ff-8ada-d8fc9c9400c3",
+      "author": "worker",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "output": {
+        "result": "Value \"alpha\" has been successfully written under run marker \"T1-A03d\"."
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_1346097",
+        "outputFor": [
+          "root@1/worker@call_1346097"
+        ]
+      },
+      "branch": "worker@call_1346097",
+      "isolationScope": "call_1346097",
+      "id": "2ef7fcdc-e298-405b-b0da-4150ab6a1ce8",
+      "timestamp": 1786933901.3382242
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionResponse": {
+              "id": "call_1346097",
+              "name": "worker",
+              "response": {
+                "result": "Value \"alpha\" has been successfully written under run marker \"T1-A03d\"."
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-423e38eb-3213-43ff-8ada-d8fc9c9400c3",
+      "author": "user",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1"
+      },
+      "id": "0af3baf5-b003-4a93-9d28-36115913203c",
+      "timestamp": 1786933901.348472
+    },
+    {
+      "modelVersion": "gemini-3.5-flash",
+      "content": {
+        "parts": [
+          {
+            "text": "I have successfully written the value \"alpha\" with the run marker \"T1-A03d\".",
+            "thoughtSignature": "EsoBCscBARFNMg-xYlKnn_fjBdmPgnsfCLhLXCBgjzh2R5HaNLbgj8hQFaE0YEsdXANSG1-jgneNnSB24qWer-tiNGjbZRcISXVOnnS5WiLHTPDVDlR32-smVfYhYwTS6MclZK1juVsaXehmI04ADqlYftGtFcSyc7Z3CfpK8QrYJQ5gYBR3kNqVTpq7b4eXs59zEAWMI6JEmot6MKL6ALefBuulmrGt5gpUtWEEPAWB29T-VmMqdMn2pQWZgmJJzllRvs_yDhaBMdq4ow=="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "candidatesTokenCount": 22,
+        "promptTokenCount": 319,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 319
+          }
+        ],
+        "thoughtsTokenCount": 19,
+        "totalTokenCount": 360
+      },
+      "invocationId": "e-423e38eb-3213-43ff-8ada-d8fc9c9400c3",
+      "author": "root",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1"
+      },
+      "id": "c605266d-4ea1-41ef-b19c-906d342bcb92",
+      "timestamp": 1786933901.3694794
+    }
+  ],
+  "lastUpdateTime": 1786933901.3694794
+}

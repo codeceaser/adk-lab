@@ -20,6 +20,7 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | T1      | T1-A03a attempt 1          | n/a                   | A — delegation only, 503 in child branch   |                                  0 | INVALID (provider 503)                |
 | T1      | T1-A03a attempt 2          | n/a                   | none — Root's first model call             |                                  0 | INVALID (provider 503)                |
 | T1      | T1-X01 (exceptional trial) | Reject ×3 then Accept | L — Root continues (4th cycle)             | 0 after 3 rejects / 1 after accept | EXCEPTIONAL TRIAL (see notes)         |
+| T1      | T1-A03d                    | Accept                | L — Root continues (no missing checkpoint) |       0 before / 1 after (derived) | PASS                                  |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -505,6 +506,57 @@ Directly demonstrated by this trial:
 Not observed, and therefore not claimed: any path in which a *rejection*
 terminates the task and returns control to Root. Its absence from this trace
 is not proof that ADK provides none.
+
+**T1-A03d (Accept) — PASS. Checkpoints A-L all occurred.** Session
+`10b04331-fb5e-4dc8-9d09-bb3ba476b3ee`, 11 events, exported to
+`evidence/T1-A03d_events.jsonl`. Execution count for `T1-A03d`: **1**.
+
+```
+#1  02:30:54  user    branch=None                 framework  TEXT "... run marker T1-A03d."
+#2  02:30:54  root    branch=None                 MODEL      CALL worker       id=call_1346097
+#3  02:31:02  worker  branch=worker@call_1346097  MODEL      CALL write_value  id=call_2339869
+#4  02:31:14  worker  branch=worker@call_1346097  framework  RESP write_value  id=call_2339869
+                        -> {"error":"This tool call requires confirmation, ..."}
+#5  02:31:14  worker  branch=worker@call_1346097  framework  CALL adk_request_confirmation
+                        id=adk-6417f692-df7a-4430-8d26-26a9d079d8b5
+#6  02:31:33  user    branch=worker@call_1346097  framework  RESP adk_request_confirmation
+                        -> {"confirmed": true, ...}
+#7  02:31:33  worker  branch=worker@call_1346097  framework  RESP write_value  id=call_2339869
+                        -> {"status":"ok","marker":"TOOL_EXECUTED variant=t1 ... T1-A03d ..."}
+#8  02:31:33  worker  branch=worker@call_1346097  MODEL      CALL finish_task  id=call_1766659
+#9  02:31:41  worker  branch=worker@call_1346097  framework  RESP finish_task  -> "Task completed."
+#10 02:31:41  user    branch=None                 framework  RESP worker       id=call_1346097
+#11 02:31:41  root    branch=None                 MODEL      TEXT "I have successfully written ..."
+```
+
+Evidence-strength note: the pre-click count here is **derived**, not measured
+live — the run had already completed when the count was taken. No execution
+is logged between the confirmation request (#5) and its response (#6), and
+the pre-Accept response at #4 is an error stub. Of T1's three clean Accepts,
+only T1-A01 carries a live pre-click measurement.
+
+### T1 Accept repeatability: 3/3
+
+| Property                               | T1-A01                | T1-A02                | T1-A03d               |
+| -------------------------------------- | --------------------- | --------------------- | --------------------- |
+| `write_value` CALLs in session         | 1                     | 1                     | 1                     |
+| that call id                           | `call_902796`         | `call_1307347`        | `call_2339869`        |
+| post-Accept result continues that id   | yes                   | yes                   | yes                   |
+| delegation call id                     | `call_1728652`        | `call_1700817`        | `call_1346097`        |
+| child branch                           | `worker@call_1728652` | `worker@call_1700817` | `worker@call_1346097` |
+| Accept event on child branch           | yes                   | yes                   | yes                   |
+| worker RESP re-uses delegation id      | yes                   | yes                   | yes                   |
+| payload identical to `finish_task` arg | yes                   | yes                   | yes                   |
+| distinct branches in session           | 2                     | 2                     | 2                     |
+| execution count                        | 1                     | 1                     | 1                     |
+
+Every id and branch differs across the three runs while every structural
+property holds, so the agreement is not an artefact of re-used identifiers.
+
+**T1 Accept conclusion: task delegation composed with native
+`require_confirmation=True` completed all checkpoints A-L in 3/3 clean runs,
+executing the tool body exactly once per run.** No checkpoint was missing in
+any Accept run. The two planned T1 Reject runs remain outstanding.
 
 ## Failures Observed
 
