@@ -36,6 +36,7 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | R0.1    | R0.1-R01                     | Reject                  | Root responded with a cancellation         |                 0 before / 0 after | PASS (all 8 conditions)                  |
 | R0.1    | R0.1-A01 (Accept regression) | Accept                  | Root responded with success                |                 0 before / 1 after | PASS (no regression)                     |
 | R0.1    | R0.1-R02                     | Reject                  | Root responded with a cancellation         |                 0 before / 0 after | PASS (all 8 conditions)                  |
+| R0.1    | R0.1-R03                     | Reject                  | Root responded with a cancellation         |                 0 before / 0 after | PASS (all 8; degraded model turn at #6)  |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -1473,9 +1474,75 @@ its behaviour:
   Expected for model-generated text, and worth separating from the
   structural result.
 
-**R0.1 status: 2/2 Reject PASS, 1/1 Accept PASS.** `R0.1-R03` would complete
-the three-run bar the earlier variants were held to; `R0.1-A02` and
-`R0.1-A03` would bring the Accept side to T2's rigour.
+**R0.1-R03 (Reject) — PASS, all eight conditions, with a degraded model turn
+mid-flight.** Session `6581ef28-aed7-4b10-91fa-8277e7f6ecc1`, 12 events,
+exported to `evidence/R0.1-R03_events.jsonl`, byte-identical to the live
+session (sha256 `f505a3c39e0eadd071ad7ec129fcc236`). Pre-click count
+measured live.
+
+```
+#2  17:35:00.191  root    branch=None                 MODEL      CALL worker       id=call_2316437
+#3  17:35:03.090  worker  branch=worker@call_2316437  MODEL      CALL write_value  id=call_1858985
+#5  17:35:05.718  worker  branch=worker@call_2316437  framework  CALL adk_request_confirmation
+                             id=adk-db8c2029-4697-4dd9-a2d7-9c31902300bd -> call_1858985
+#6  17:35:05.745  worker  branch=worker@call_2316437  MODEL      ERROR MODEL_RETURNED_NO_CONTENT
+                             "The model returned no content (finish_reason=STOP with empty parts)."
+                             content={}, usageMetadata present
+      ---- MCP execution count for R0.1-R03: 0 (measured live, pre-click) ----
+#7  17:37:43.776  user    branch=worker@call_2316437  framework  RESP adk_request_confirmation
+                             -> {"confirmed": false, "payload": {...}}
+#8  17:37:43.793  worker  branch=worker@call_2316437  framework  RESP write_value  id=call_1858985
+                             -> {"error": "This tool call is rejected."}
+#9  17:37:43.811  worker  branch=worker@call_2316437  MODEL      CALL finish_task  id=call_1759296
+                             args={"result": "cancelled"}
+#10 17:37:46.694  worker  branch=worker@call_2316437  framework  RESP finish_task -> "Task completed."
+#11 17:37:46.704  user    branch=None                 framework  RESP worker id=call_2316437
+                             -> {"result": "cancelled"}
+#12 17:37:46.726  root    branch=None                 MODEL      TEXT "The operation to write the value
+                             "alpha" with run marker "R0.1-R03" was cancelled."
+      ---- MCP execution count for R0.1-R03: 0 ----
+```
+
+Event #6 landed in the slot where the other R0.1 runs produced narration —
+the MCP summarisation turn, which exists only because `McpTool` does not set
+`skip_summarization` (see the post-hoc source reading in Interpretation).
+The model was called and billed (`usageMetadata` present) and returned
+`finish_reason=STOP` with empty parts; ADK recorded an error event.
+
+It did not touch the confirmation path. The request `adk-db8c2029` retained
+its `longRunningToolIds`, had zero responses, and still targeted
+`call_1858985` at the moment of the pre-click measurement.
+
+This makes the run **stronger** evidence than a clean one: the worker had an
+error event in its context where narration normally sits, and still reached
+`finish_task({"result": "cancelled"})` on its next model turn. The rejection
+semantics survived a failed intermediate turn.
+
+`MODEL_RETURNED_NO_CONTENT` had not appeared anywhere else in this
+expedition. It is benign here, but that is one observation, and the same
+turn was used to emit a *tool call* in 2 of 6 T2 runs — so no general claim
+about it being harmless is made.
+
+### R0.1 Reject path: 3/3, every identifier differing
+
+|                       | R0.1-R01                  | R0.1-R02                  | R0.1-R03                          |
+| --------------------- | ------------------------- | ------------------------- | --------------------------------- |
+| delegation call id    | `call_1776588`            | `call_251898`             | `call_2316437`                    |
+| `write_value` call id | `call_4046227`            | `call_999487`             | `call_1858985`                    |
+| confirmation id       | `adk-4112b9ec`            | `adk-814d47eb`            | `adk-db8c2029`                    |
+| `finish_task` args    | `{"result": "cancelled"}` | `{"result": "cancelled"}` | `{"result": "cancelled"}`         |
+| MCP executions        | 0                         | 0                         | 0                                 |
+| branch values         | 2                         | 2                         | 2                                 |
+| anomalies             | —                         | —                         | `MODEL_RETURNED_NO_CONTENT` at #6 |
+
+**R0.1 status: 3/3 Reject PASS, 1/1 Accept PASS.** The Reject path now meets
+the three-run bar the earlier variants were held to. `R0.1-A02` and
+`R0.1-A03` would bring the Accept side to T2's rigour; the Accept path still
+rests on a single run under these instructions.
+
+The `finish_task` argument was the literal string `"cancelled"` in all three
+Reject runs. Three samples, still a model-chosen string rather than a
+contract.
 
 ## Failures Observed
 
