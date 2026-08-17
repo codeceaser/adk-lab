@@ -21,7 +21,7 @@ fails. Not a redesign, not a fix.
 | fastapi                     | 0.141.1                                                        |
 | Model                       | `gemini-3.5-flash`                                             |
 | Provider                    | Gemini API (`GOOGLE_GENAI_USE_ENTERPRISE=0`, `GOOGLE_API_KEY`) |
-| MCP client lib              | not installed (`mcp` absent) — relevant only to C1/T2          |
+| MCP client lib              | `mcp` 1.29.0 — added for Phase 2; absent during all of Phase 1 |
 | OS                          | Windows 11, PowerShell                                         |
 | venv                        | `.venv` at repo root                                           |
 | Git commit at scaffold time | `9d5c3d9`                                                      |
@@ -35,18 +35,67 @@ ADK is pinned. It is not upgraded or downgraded for this expedition.
 | C0      | Root + `write_value` FunctionTool, `require_confirmation=True` | Phase 1 complete — 1 Accept + 1 Reject, both PASS   |
 | T0      | Root → `mode="task"` worker → `write_value`, no confirmation   | Phase 1 complete — 3/3 PASS                         |
 | T1      | Root → `mode="task"` worker → confirmed FunctionTool           | Phase 1 complete — 3/3 Accept PASS, 2/2 Reject PASS |
-| C1      | Root + `McpToolset` `write_value`, `require_confirmation=True` | Phase 2                                             |
-| T2      | Root → `mode="task"` worker → confirmed `McpToolset` tool      | Phase 2                                             |
+| C1      | Root + `McpToolset` `write_value`, `require_confirmation=True` | Phase 2 — scaffolded, not yet run                   |
+| T2      | Root → `mode="task"` worker → confirmed `McpToolset` tool      | Phase 2 — not scaffolded                            |
 
-**Phase 1** (C0/T0/T1) runs in the environment recorded above, unchanged.
-**Phase 2** (C1/T2) requires adding the `mcp` dependency; it starts only after
-Phase 1 evidence is complete. C1/T2 must use ADK's native `McpToolset`
-confirmation path — a `FunctionTool` wrapper around MCP is not a substitute and
-would not test the thing in question. `evidence/environment_phase1.txt` holds
-the pre-change `pip freeze`, Python version, ADK version and git commit.
+**Phase 1** (C0/T0/T1) ran in the environment recorded above and is complete
+and frozen at commit `3ff3484`. Its variant code is not modified by Phase 2;
+`evidence/environment_phase2_pre.txt` records the SHA256 of each Phase 1
+`agent.py` plus `hitl_evidence.py` so that can be checked.
+
+**Phase 2** (C1/T2) uses ADK's native `McpToolset` confirmation path. A
+`FunctionTool` wrapper around MCP is not a substitute and would not test the
+thing in question.
+
+### Phase 2 dependency change
+
+```bash
+pip install "google-adk[mcp]==2.6.3"
+```
+
+The `[mcp]` extra takes the constraint from ADK itself
+(`Requires-Dist: mcp>=1.24,<2 ; extra == "mcp"`) rather than from a pin we
+invent. Purely additive — six packages installed, none upgraded, none
+removed:
+
+| Package             | Version |
+| ------------------- | ------- |
+| `mcp`               | 1.29.0  |
+| `httpx-sse`         | 0.4.3   |
+| `pydantic-settings` | 2.15.0  |
+| `PyJWT`             | 2.13.0  |
+| `pywin32`           | 312     |
+| `sse-starlette`     | 3.4.8   |
+
+`google-adk` 2.6.3, `google-genai` 2.17.0, `pydantic` 2.13.4 and `fastapi`
+0.141.1 are unchanged. Three snapshots bracket the change:
+`environment_phase1.txt`, `environment_phase2_pre.txt` and
+`environment_phase2_post.txt`.
+
+### C1 composition
+
+`variants/c1_root_mcp_confirmation/` holds two files: a stdio MCP server
+exposing exactly one tool, and the Root agent consuming it.
+
+```python
+McpToolset(
+    connection_params=StdioConnectionParams(
+        server_params=StdioServerParameters(
+            command=sys.executable,          # same venv as the agent process
+            args=[str(_SERVER)],
+        ),
+    ),
+    require_confirmation=True,               # native McpToolset parameter
+)
+```
+
+C0 and C1 use identical agent names, descriptions, instructions and tool
+payloads, so they differ by transport alone.
 
 Each variant is a standalone ADK app under `variants/`. They share nothing but
-`hitl_evidence.py`, which only appends to the tool-side execution log.
+the execution recorders, which only append to their own logs:
+`hitl_evidence.py` for the FunctionTool variants, `mcp_evidence.py` for the
+MCP ones.
 
 ## How to start each variant
 
@@ -59,7 +108,10 @@ adk web experiments/side_expeditions/task_hitl_confirmation/variants --port 8932
 ```
 
 App names: `c0_root_function_confirmation`, `t0_task_plain_tool`,
-`t1_task_function_confirmation`.
+`t1_task_function_confirmation`, `c1_root_mcp_confirmation`.
+
+C1 needs no separate server process: ADK spawns the stdio MCP server as a
+subprocess when the toolset connects.
 
 Sessions live in ADK's default in-memory store, so export a run's events before
 restarting the server.
@@ -118,9 +170,16 @@ T1 for a case none of the three described.
 
 ## Evidence
 
-- `evidence/tool_executions.jsonl` — one append-only line per *real* tool-body
-  execution (`TOOL_EXECUTED variant=… run_marker=… value=…`). The same marker is
+- `evidence/tool_executions.jsonl` — one append-only line per *real*
+  FunctionTool body execution (`TOOL_EXECUTED variant=… run_marker=… value=…`),
+  written by `hitl_evidence.py` in the agent process. The same marker is
   printed to the ADK Web server console.
+- `evidence/mcp_tool_executions.jsonl` — the MCP equivalent
+  (`MCP_TOOL_EXECUTED …`), written by `mcp_evidence.py` from *inside the MCP
+  server subprocess*. A separate file and a separate module by design: an MCP
+  invocation can never be miscounted as a FunctionTool one, and the count comes
+  from the far side of the MCP boundary. Count with
+  `python .../mcp_evidence.py C1-A01`.
 - `evidence/<RUN>_events.jsonl` / `<RUN>_session.json` — raw session events
   exported from the ADK Web REST API:
 

@@ -1,0 +1,96 @@
+# Phase 2 POST-CHANGE environment snapshot
+# Captured 2026-08-16 23:10:39 -04:00, after: pip install "google-adk[mcp]==2.6.3"
+# Compare against environment_phase2_pre.txt for the exact delta.
+
+# Added (6, all previously absent): mcp 1.29.0, httpx-sse 0.4.3,
+# pydantic-settings 2.15.0, PyJWT 2.13.0, pywin32 312, sse-starlette 3.4.8
+# Upgraded: none.  Removed: none.
+
+python:       Python 3.13.9
+google-adk    2.6.3
+google-genai  2.17.0
+pydantic      2.13.4
+fastapi       0.141.1
+mcp           1.29.0
+
+# Phase 1 variant code hashes - unchanged from environment_phase2_pre.txt
+D048FFA11B4103C72A9496A8F72E1028C02F43669B4FD9CCE57E7EE6267074C5  experiments\side_expeditions\task_hitl_confirmation\variants\c0_root_function_confirmation\agent.py
+2A58656A3D688E0E4446EFEBCDB7D09F35E21ADB6E10E74D3B445BA58FE359B0  experiments\side_expeditions\task_hitl_confirmation\variants\c1_root_mcp_confirmation\agent.py
+D459810BEC2FB126AEC6CA2953F047ED09FABD7C4ED1501717FD488D9DCDFD28  experiments\side_expeditions\task_hitl_confirmation\variants\t0_task_plain_tool\agent.py
+E76175DAB9E6308FE6458AE4EE8D3A282E5E675C0FCAEE2C737C2EED954ACE78  experiments\side_expeditions\task_hitl_confirmation\variants\t1_task_function_confirmation\agent.py
+
+# MCP server smoke test (list_tools only; no tool call, no evidence written)
+server: write-value-server 1.29.0
+tool  : write_value
+desc  : Writes a value under a run marker.
+schema: {"properties": {"value": {"type": "string"}, "run_marker": {"type": "string"}}, "required": ["value", "run_marker"], "type": "object"}
+
+# pip freeze
+aiohappyeyeballs==2.7.1
+aiohttp==3.14.3
+aiosignal==1.4.0
+aiosqlite==0.22.1
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.14.2
+attrs==26.1.0
+Authlib==1.7.2
+certifi==2026.7.22
+cffi==2.1.1
+charset-normalizer==3.4.9
+click==8.4.2
+colorama==0.4.6
+cryptography==50.0.0
+distro==1.9.0
+fastapi==0.141.1
+frozenlist==1.8.0
+google-adk==2.6.3
+google-auth==2.56.3
+google-genai==2.17.0
+graphviz==0.21
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+httpx-sse==0.4.3
+idna==3.18
+iniconfig==2.3.0
+joserfc==1.7.4
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+mcp==1.29.0
+multidict==6.7.1
+opentelemetry-api==1.42.1
+opentelemetry-sdk==1.42.1
+opentelemetry-semantic-conventions==0.63b1
+packaging==26.3
+pluggy==1.6.0
+propcache==0.5.2
+pyasn1==0.6.4
+pyasn1_modules==0.4.2
+pycparser==3.0
+pydantic==2.13.4
+pydantic-settings==2.15.0
+pydantic_core==2.46.4
+Pygments==2.20.0
+PyJWT==2.13.0
+pytest==9.1.1
+python-dotenv==1.2.2
+python-multipart==0.0.32
+pywin32==312
+PyYAML==6.0.3
+referencing==0.37.0
+requests==2.34.2
+rpds-py==2026.6.3
+sniffio==1.3.1
+sse-starlette==3.4.8
+starlette==1.6.0
+tenacity==9.1.4
+typing-inspection==0.4.2
+typing_extensions==4.16.0
+tzdata==2026.3
+tzlocal==5.4.4
+urllib3==2.7.0
+uvicorn==0.52.1
+watchdog==6.0.0
+websockets==15.0.1
+yarl==1.24.5

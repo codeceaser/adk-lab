@@ -4,7 +4,10 @@ version = "0.0.1"
 description = "Empirical learning laboratory for the Google Agent Development Kit (ADK)."
 requires-python = ">=3.10"
 dependencies = [
-    "google-adk==2.6.3",
+    # The [mcp] extra pins mcp>=1.24,<2 from ADK itself rather than from us.
+    # Added for the task_hitl_confirmation side expedition's Phase 2 (C1/T2),
+    # which tests ADK's native McpToolset confirmation path.
+    "google-adk[mcp]==2.6.3",
 ]
 
 [project.optional-dependencies]
