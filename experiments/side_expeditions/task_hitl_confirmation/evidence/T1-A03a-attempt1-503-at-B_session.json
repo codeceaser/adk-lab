@@ -1,0 +1,100 @@
+{
+  "id": "ea00ddfd-c86c-4fe6-b565-d8881f9cc00f",
+  "appName": "t1_task_function_confirmation",
+  "userId": "user",
+  "state": {
+    "__session_metadata__": {
+      "displayName": "Write the value \"alpha\" with run marker \"T1-A03a\"."
+    }
+  },
+  "events": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Write the value \"alpha\" with run marker \"T1-A03a\"."
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-7a092e9e-f70f-4a9a-bba6-c88fb7ee98b8",
+      "author": "user",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": ""
+      },
+      "id": "493fcac2-f67f-4186-8690-ecf8782ebbc2",
+      "timestamp": 1786929495.2828286
+    },
+    {
+      "modelVersion": "gemini-3.5-flash",
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "id": "call_2389435",
+              "args": {
+                "request": "Write the value \"alpha\" under the run marker \"T1-A03a\"."
+              },
+              "name": "worker"
+            },
+            "thoughtSignature": "EpcECpQEARFNMg9CMe9ibUJ5G6lWoaAQSiXpwEJvlmufGxEyCzz52S8wxMNmwv8kX3pQ4dH4Yt758Blf3Hp4e9hwW-BkQH_RjGOrPcsOB_OdUYazwKQf9hvdx5t9-rZeqs4ZMzhtMIb9c_wq4msP-WHXkADvvCVM_wn-uaXdAnJN3mw0rDOGc7m4BV3ALAt36IvlyCMm8Dwg2OPlgXZ1q_6ZX3-uqj35_zApq2oIdE_Gq3o2K9Q3WtmmU6_to9tSguLrl__Bu_Jqb--fXeLC0FEQjWKinUmsRAAtnD4RUqy-QMO7ASPxP_uPMsXcrVr4cRxc5ErSHsADQPkWJa81KvnU3xLGhKM8jkxwRcGeVic26lT7GnP1ewVmZLFUco2K263PtqfAXImCWnxwdlFXeKq4szr4zGFeNHeR9PBLuMFyPrZXnDky5bgpxm5uRWOctURu1HIKW1rRqAEUv-aBtLXzF3blo49udwA5IX_3ejt_yPH0_PCUJDvnCWEvqYSX18_pgcUaKOm5CbljVBdGsaZeNn0bpbfiAlfkwkeFR4edIvtZuphImjY-JgKIHrfNkx9r2g49qo5qJzLApqjlocGIogNfUsSln202cXHEykm5bHkAdCRsxRkJ6GWUZNslodD0-VUOcv0c4C3_fzMKf8pvN0nGrRRa65xDm_zbbczN93xyfK7ZlAK4bYdmh8eKThydr5-IOIMPWg=="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "candidatesTokenCount": 32,
+        "promptTokenCount": 165,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 165
+          }
+        ],
+        "thoughtsTokenCount": 113,
+        "totalTokenCount": 310
+      },
+      "invocationId": "e-7a092e9e-f70f-4a9a-bba6-c88fb7ee98b8",
+      "author": "root",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1"
+      },
+      "longRunningToolIds": [],
+      "id": "9c08d515-5886-4567-9dc3-2fa8548b7189",
+      "timestamp": 1786929495.3152816
+    },
+    {
+      "errorCode": "ServerError",
+      "errorMessage": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+      "invocationId": "e-7a092e9e-f70f-4a9a-bba6-c88fb7ee98b8",
+      "author": "root",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_2389435"
+      },
+      "branch": "worker@call_2389435",
+      "isolationScope": "call_2389435",
+      "id": "728b7bae-88ab-49de-b818-8eeacede61da",
+      "timestamp": 1786929506.3780339
+    }
+  ],
+  "lastUpdateTime": 1786929506.3780339
+}

@@ -5,18 +5,21 @@ Environment: `google-adk` 2.6.3, `google-genai` 2.17.0, Python 3.13.9,
 
 Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 
-| Variant | Run              | Accept/Reject | Last checkpoint                            |         Tool count | Result                      |
-| ------- | ---------------- | ------------- | ------------------------------------------ | -----------------: | --------------------------- |
-| C0      | C0-A01           | Accept        | 7 — Root continues                         | 0 before / 1 after | PASS                        |
-| C0      | C0-R01           | Reject        | 5 — rejection honoured, tool not executed  | 0 before / 0 after | PASS                        |
-| T0      | T0-01            | n/a           | 7 — Root continues after task result       |                  1 | PASS                        |
-| T0      | T0-02 attempt 1  | n/a           | 0 — Root's first model call                |                  0 | INVALID (provider 503)      |
-| T0      | T0-02            | n/a           | 7 — Root continues after task result       |                  1 | PASS                        |
-| T0      | T0-03            | n/a           | 7 — Root continues after task result       |                  1 | PASS                        |
-| T1      | T1-A01           | Accept        | L — Root continues (no missing checkpoint) | 0 before / 1 after | PASS                        |
-| T1      | T1-A02 attempt 1 | n/a           | none — Root's first model call             |                  0 | INVALID (provider 503)      |
-| T1      | T1-A02 attempt 2 | Accept        | K — task result returned to Root           | 0 before / 1 after | INVALID (provider 503 at L) |
-| T1      | T1-A02           | Accept        | L — Root continues (no missing checkpoint) | 0 before / 1 after | PASS                        |
+| Variant | Run                        | Accept/Reject         | Last checkpoint                            |                         Tool count | Result                                |
+| ------- | -------------------------- | --------------------- | ------------------------------------------ | ---------------------------------: | ------------------------------------- |
+| C0      | C0-A01                     | Accept                | 7 — Root continues                         |                 0 before / 1 after | PASS                                  |
+| C0      | C0-R01                     | Reject                | 5 — rejection honoured, tool not executed  |                 0 before / 0 after | PASS                                  |
+| T0      | T0-01                      | n/a                   | 7 — Root continues after task result       |                                  1 | PASS                                  |
+| T0      | T0-02 attempt 1            | n/a                   | 0 — Root's first model call                |                                  0 | INVALID (provider 503)                |
+| T0      | T0-02                      | n/a                   | 7 — Root continues after task result       |                                  1 | PASS                                  |
+| T0      | T0-03                      | n/a                   | 7 — Root continues after task result       |                                  1 | PASS                                  |
+| T1      | T1-A01                     | Accept                | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                  |
+| T1      | T1-A02 attempt 1           | n/a                   | none — Root's first model call             |                                  0 | INVALID (provider 503)                |
+| T1      | T1-A02 attempt 2           | Accept                | K — task result returned to Root           |                 0 before / 1 after | PARTIAL (A-K pass, provider 503 at L) |
+| T1      | T1-A02                     | Accept                | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                  |
+| T1      | T1-A03a attempt 1          | n/a                   | A — delegation only, 503 in child branch   |                                  0 | INVALID (provider 503)                |
+| T1      | T1-A03a attempt 2          | n/a                   | none — Root's first model call             |                                  0 | INVALID (provider 503)                |
+| T1      | T1-X01 (exceptional trial) | Reject ×3 then Accept | L — Root continues (4th cycle)             | 0 after 3 rejects / 1 after accept | EXCEPTIONAL TRIAL (see notes)         |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -345,7 +348,7 @@ so three sessions carry the marker `T1-A02`. All three are preserved.
 | Attempt | Session                                | Events | Outcome                                                |
 | ------- | -------------------------------------- | -----: | ------------------------------------------------------ |
 | 1       | `ec048411-c0ed-4d60-bab1-a65d80cc2179` |      2 | 503 on Root's first model call — INVALID, 0 executions |
-| 2       | `bf59806a-82bd-4ef4-a155-40df97322801` |     11 | reached K, then 503 at L — INVALID, 1 execution        |
+| 2       | `bf59806a-82bd-4ef4-a155-40df97322801` |     11 | A-K pass, then 503 at L — PARTIAL, 1 execution         |
 | 3       | `c4d0da5b-8e5d-4173-a8b0-6a640957eef0` |     11 | complete A-L — **PASS**, 1 execution                   |
 
 Exported as `T1-A02-INVALID-503-pre`, `T1-A02-attempt2-503-at-L` and
@@ -401,13 +404,26 @@ Directly demonstrated by this session:
   an error. The 503 did not cause re-execution, duplication or retry of the
   already-completed side effect.
 
-Classification rationale: attempt 2 does not fit either scheme cleanly.
+Classification: **PARTIAL — A-K pass, provider 503 at L.**
+
+`PARTIAL` is a fourth class, added deliberately beyond the brief's
+PASS/FAIL/INVALID scheme, because attempt 2 fits none of the three.
 `INVALID` is defined as the intended path never being entered, yet this run
-entered it and reached K; `FAIL` is defined as a framework path that begins
-and then stops, yet the stop was a provider 503 rather than an ADK
-execution-path defect. It is recorded as INVALID so it does not count toward
-the three Accept runs the protocol requires, while its A-K evidence is
-retained above as corroboration.
+entered it and ran to K. `FAIL` is defined as a framework path that begins
+and then stops, yet the stop was a provider 503, not an ADK execution-path
+defect. `PASS` would overstate it, since checkpoint L never occurred.
+
+What PARTIAL asserts here: every ADK-owned checkpoint of the composition
+under test — delegation, confirmation request, confirmation continuation,
+tool execution, tool-result propagation, task completion and return to Root
+— completed successfully. What failed afterwards was Root's closing model
+call, which is outside ADK's execution path and attributable to the
+provider.
+
+Counting rule: PARTIAL runs do **not** count toward the three Accept runs
+the protocol requires, so this run is not one of T1's clean Accepts. Its A-K
+evidence is retained above as corroboration, and it is the only run in the
+expedition that isolates checkpoints A-K from Root's closing turn.
 
 Provider errors in this expedition are 503 `UNAVAILABLE` ("model is currently
 experiencing high demand"), not 429/quota: across the full ADK Web server log
@@ -415,10 +431,87 @@ experiencing high demand"), not 429/quota: across the full ADK Web server log
 `RESOURCE_EXHAUSTED` and `quota` occur zero times. All recorded error events
 carry `errorCode=ServerError` with the identical 503 payload.
 
+**T1-A03a attempts 1 and 2 — INVALID (provider 503).** Both preserved,
+0 executions for the marker `T1-A03a`.
+
+- Attempt 1, session `ea00ddfd-c86c-4fe6-b565-d8881f9cc00f`, 3 events,
+  exported as `T1-A03a-attempt1-503-at-B`. Checkpoint **A occurred** —
+  Root delegated with `CALL worker id=call_2389435` — and the 503 then hit
+  *inside the child branch* (`branch=worker@call_2389435`) before the worker
+  could emit its `write_value` call, so **B never occurred**. The child
+  branch was created before the provider failed.
+- Attempt 2, session `705f46ab-c7ae-409c-aebc-015faa796624`, 2 events,
+  exported as `T1-A03a-attempt2-503-pre`. Died on Root's first model call,
+  as T0-02 attempt 1 and T1-A02 attempt 1 did.
+
+Both re-used the marker `T1-A03a`, contrary to the unique-marker protocol
+now recorded in `README.md`. Harmless here only because both executed the
+tool zero times.
+
+**T1-X01 — EXCEPTIONAL TRIAL: three rejections, then an accept, in one
+session.** Session `20122284-a0bf-4170-8399-6bc678dd5ed6`.
+
+Provenance, stated plainly: this run was launched under the marker
+`T1-A03c`, intended as an Accept run, and the in-session tool arguments
+still read `T1-A03c` — those are raw evidence and are not rewritten. What
+was actually performed was three Rejects followed by one Accept. It is
+recorded as an exceptional trial rather than discarded, per ground rule 8
+and §6 ("Do not hide inconsistent results"). **It does not count toward the
+two planned T1 Reject runs**, which are still outstanding.
+
+Two artefacts are preserved, and they differ deliberately:
+
+| Artefact               | Events | State                                                                                     |
+| ---------------------- | -----: | ----------------------------------------------------------------------------------------- |
+| `T1-X01-reject-loop_*` |     20 | live snapshot taken while the 4th confirmation was pending; pre-click count measured at 0 |
+| `T1-X01-final_*`       |     26 | the completed session after the 4th confirmation was accepted                             |
+
+Four confirmation cycles, each with its own ids:
+
+| Cycle | `write_value` id | confirmation id | `confirmed` | outcome for that call                      |
+| ----- | ---------------- | --------------- | ----------- | ------------------------------------------ |
+| 1     | `call_1445394`   | `adk-4adac5ce`  | false       | `{"error": "This tool call is rejected."}` |
+| 2     | `call_2361529`   | `adk-9e40ed31`  | false       | `{"error": "This tool call is rejected."}` |
+| 3     | `call_2871783`   | `adk-8838ba22`  | false       | `{"error": "This tool call is rejected."}` |
+| 4     | `call_977291`    | `adk-3d64e046`  | **true**    | executed; `TOOL_EXECUTED ... T1-A03c`      |
+
+Execution count: **0** across all three rejections (measured live at the
+20-event state), **1** after the Accept. Total for the marker: 1.
+
+Directly demonstrated by this trial:
+
+- **Rejection is honoured inside task mode.** Each rejected call is
+  terminated by ADK against its own pending id, and the tool body did not
+  execute for any of the three.
+- **Each retry is a new call, not ADK re-presenting a pending one.** Four
+  distinct `write_value` ids, four distinct confirmation ids, each
+  confirmation's `originalFunctionCall.id` pointing at its own cycle's
+  call. The re-issues at #8, #13 and #18 carry `modelVersion` — they are
+  worker LLM turns.
+- **Every cycle stayed on one child branch.** The session contains exactly
+  two branch values: `None` (only the user prompt and Root's delegation) and
+  `worker@call_1021090` (everything else, all four cycles).
+- **Rejection terminates the call, not the task.** Through 20 events there
+  were 0 `finish_task` calls, 0 responses to Root, and 1 Root-authored event
+  (the initial delegation). Control never returned to Root while rejections
+  continued.
+- **The Accept ended the loop and completed the task normally.** The
+  executed call `call_977291` was the last pending call, continued under its
+  own id (#22), followed by `finish_task` (#23, model-authored), its
+  response (#24), the synthesized `worker` response re-using delegation id
+  `call_1021090` (#25) and Root's closing text (#26) — checkpoints A-L on
+  the fourth cycle.
+
+Not observed, and therefore not claimed: any path in which a *rejection*
+terminates the task and returns control to Root. Its absence from this trace
+is not proof that ADK provides none.
+
 ## Failures Observed
 
-_(none yet — the 503s above are provider-side and classified INVALID, not
-failures of an ADK execution path)_
+_(none yet. The 503s above are provider-side, not failures of an ADK
+execution path: two are INVALID because the run died on Root's first model
+call before entering the test path, and one is PARTIAL because every
+ADK-owned checkpoint passed and only Root's closing model call failed.)_
 
 ## Interpretation
 
@@ -469,3 +562,36 @@ Scope limit: this is three runs of one variant on one model, all without
 confirmation. It says nothing about what happens when a confirmation has to
 cross the child-branch boundary — that is exactly what T1 tests, and no
 expectation about the T1 outcome is recorded here.
+
+### Inference: rejection ends a call; only finish_task ends a task
+
+Based on T1-X01 (one session, four cycles) and C0-R01:
+
+A rejection is terminal for the *call* it targets — ADK closes it with
+`{"error": "This tool call is rejected."}` and the body never runs. It does
+not appear to be terminal for the *task*. In every completed run so far,
+return-to-Root was driven by `finish_task`, and in T1-X01 no `finish_task`
+occurred while rejections continued, so control stayed inside the child
+branch across three cycles.
+
+The worker instruction under test is:
+
+```
+When asked to write a value, call write_value with the exact value and run marker provided.
+After the tool succeeds, complete the task.
+```
+
+It authorises completion only after success and is silent on failure. A
+plausible reading is that the model, having no instructed route to
+`finish_task` after a rejection, retries instead. C0-R01 is consistent: Root
+also re-issued once after a Reject, at Root level.
+
+If that reading is right, the structural consequence differs by composition:
+at Root level a post-rejection retry leaves a pending prompt in front of the
+user, whereas inside task mode it means control never returns to Root at
+all. This is inference, not a finding — the experiment did not vary the
+instruction, and doing so mid-expedition is barred by ground rule 9.
+
+Untested alternatives that could equally explain the loop: a framework-level
+rejection-to-task-termination path that exists but was not triggered here;
+model-specific retry behaviour that another model would not exhibit.

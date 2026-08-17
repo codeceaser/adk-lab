@@ -1,0 +1,53 @@
+{
+  "id": "705f46ab-c7ae-409c-aebc-015faa796624",
+  "appName": "t1_task_function_confirmation",
+  "userId": "user",
+  "state": {
+    "__session_metadata__": {
+      "displayName": "Write the value \"alpha\" with run marker \"T1-A03a\"."
+    }
+  },
+  "events": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Write the value \"alpha\" with run marker \"T1-A03a\"."
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-acbde2e0-aa8f-45e5-9180-2dd8e2a47e28",
+      "author": "user",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": ""
+      },
+      "id": "0f11568f-f52e-463d-8486-17e3a9feaf22",
+      "timestamp": 1786929727.033126
+    },
+    {
+      "errorCode": "ServerError",
+      "errorMessage": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}",
+      "invocationId": "e-acbde2e0-aa8f-45e5-9180-2dd8e2a47e28",
+      "author": "root",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1"
+      },
+      "id": "7ff901b7-57bb-44b9-b3af-5a461abc9303",
+      "timestamp": 1786929729.4585402
+    }
+  ],
+  "lastUpdateTime": 1786929729.4585402
+}

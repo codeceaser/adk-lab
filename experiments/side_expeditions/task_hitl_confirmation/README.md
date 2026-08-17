@@ -12,31 +12,31 @@ fails. Not a redesign, not a fix.
 
 ## Exact environment
 
-| Item | Value |
-| --- | --- |
-| `google-adk` | 2.6.3 |
-| `google-genai` | 2.17.0 |
-| Python | 3.13.9 |
-| pydantic | 2.13.4 |
-| fastapi | 0.141.1 |
-| Model | `gemini-3.5-flash` |
-| Provider | Gemini API (`GOOGLE_GENAI_USE_ENTERPRISE=0`, `GOOGLE_API_KEY`) |
-| MCP client lib | not installed (`mcp` absent) — relevant only to C1/T2 |
-| OS | Windows 11, PowerShell |
-| venv | `.venv` at repo root |
-| Git commit at scaffold time | `9d5c3d9` |
+| Item                        | Value                                                          |
+| --------------------------- | -------------------------------------------------------------- |
+| `google-adk`                | 2.6.3                                                          |
+| `google-genai`              | 2.17.0                                                         |
+| Python                      | 3.13.9                                                         |
+| pydantic                    | 2.13.4                                                         |
+| fastapi                     | 0.141.1                                                        |
+| Model                       | `gemini-3.5-flash`                                             |
+| Provider                    | Gemini API (`GOOGLE_GENAI_USE_ENTERPRISE=0`, `GOOGLE_API_KEY`) |
+| MCP client lib              | not installed (`mcp` absent) — relevant only to C1/T2          |
+| OS                          | Windows 11, PowerShell                                         |
+| venv                        | `.venv` at repo root                                           |
+| Git commit at scaffold time | `9d5c3d9`                                                      |
 
 ADK is pinned. It is not upgraded or downgraded for this expedition.
 
 ## Variants
 
-| Variant | Composition | Status |
-| --- | --- | --- |
-| C0 | Root + `write_value` FunctionTool, `require_confirmation=True` | scaffolded (Phase 1) |
-| T0 | Root → `mode="task"` worker → `write_value`, no confirmation | scaffolded (Phase 1) |
-| T1 | Root → `mode="task"` worker → confirmed FunctionTool | scaffolded (Phase 1) |
-| C1 | Root + `McpToolset` `write_value`, `require_confirmation=True` | Phase 2 |
-| T2 | Root → `mode="task"` worker → confirmed `McpToolset` tool | Phase 2 |
+| Variant | Composition                                                    | Status               |
+| ------- | -------------------------------------------------------------- | -------------------- |
+| C0      | Root + `write_value` FunctionTool, `require_confirmation=True` | scaffolded (Phase 1) |
+| T0      | Root → `mode="task"` worker → `write_value`, no confirmation   | scaffolded (Phase 1) |
+| T1      | Root → `mode="task"` worker → confirmed FunctionTool           | scaffolded (Phase 1) |
+| C1      | Root + `McpToolset` `write_value`, `require_confirmation=True` | Phase 2              |
+| T2      | Root → `mode="task"` worker → confirmed `McpToolset` tool      | Phase 2              |
 
 **Phase 1** (C0/T0/T1) runs in the environment recorded above, unchanged.
 **Phase 2** (C1/T2) requires adding the `mcp` dependency; it starts only after
@@ -75,7 +75,8 @@ One prompt, one operation. Use a fresh session per run and a unique run marker.
 Write the value alpha with run marker C0-R01
 ```
 
-Run markers: `C0-R01`, `C1-R01`, `T0-R01`, `T1-R01`, `T2-R01`, …
+Run markers: `C0-A01` / `C0-R01` (A = Accept run, R = Reject run), `T0-01`,
+`T1-A01`, `T1-R01`, …
 
 For confirmation variants, record the tool execution count immediately before
 and immediately after clicking Accept/Reject:
@@ -83,6 +84,37 @@ and immediately after clicking Accept/Reject:
 ```powershell
 python experiments/side_expeditions/task_hitl_confirmation/hitl_evidence.py C0-R01
 ```
+
+### Run protocol
+
+1. **A unique marker for every attempt, including retries.** If a run has to
+   be repeated, the retry gets its own marker (`T1-A03`, `T1-A03b`,
+   `T1-A03c`), never the original one. Execution counts are keyed by marker,
+   so a re-used marker makes the count ambiguous and forces timestamp
+   attribution after the fact — see the T1-A02 collision in `RESULTS.md`.
+2. **Capture the pre-click execution count live wherever possible.** Pause at
+   the pending confirmation and take the count before clicking. A count
+   derived afterwards from timestamps is weaker evidence, and the difference
+   is recorded per run.
+3. **Preserve failed sessions; never repair them.** A session that dies on a
+   provider error is exported as evidence and left alone. Retry in a *fresh*
+   session under a new marker rather than re-driving the failed one.
+4. **No automatic retry or backoff anywhere in the experiment.** Retries are
+   manual, one deliberate run at a time. Adding retry or backoff logic would
+   change the execution path under test, and is out of bounds like the other
+   repairs listed in the ground rules.
+
+### Result classes
+
+`PASS`, `FAIL` and `INVALID` come from the brief. `PARTIAL` was added during
+T1 for a case none of the three described.
+
+| Class   | Meaning                                                                                                                                                                                                    |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PASS    | Every checkpoint occurred, in order.                                                                                                                                                                       |
+| FAIL    | An ADK execution path began correctly and then stopped. Record the first missing checkpoint.                                                                                                               |
+| INVALID | The intended test path was never entered — the model chose another tool, or a provider error hit before delegation. Repeat the run.                                                                        |
+| PARTIAL | Every ADK-owned checkpoint passed, but the run ended from a cause outside ADK's execution path, such as a provider 503 on Root's closing model call. Does not count toward a variant's required run total. |
 
 ## Evidence
 
