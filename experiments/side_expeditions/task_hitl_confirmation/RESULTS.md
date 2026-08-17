@@ -5,15 +5,15 @@ Environment: `google-adk` 2.6.3, `google-genai` 2.17.0, Python 3.13.9,
 
 Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 
-| Variant | Run | Accept/Reject | Last checkpoint | Tool count | Result |
-| ------- | --- | ------------- | --------------- | ---------: | ------ |
-| C0 | C0-A01 | Accept | 7 — Root continues | 0 before / 1 after | PASS |
-| C0 | C0-R01 | Reject | 5 — rejection honoured, tool not executed | 0 before / 0 after | PASS |
-| T0 | T0-01 | n/a | 7 — Root continues after task result | 1 | PASS |
-| T0 | T0-02 attempt 1 | n/a | 0 — Root's first model call | 0 | INVALID (provider 503) |
-| T0 | T0-02 | n/a | 7 — Root continues after task result | 1 | PASS |
-| T0 | T0-03 | n/a | 7 — Root continues after task result | 1 | PASS |
-| T1 | T1-A01 | Accept | L — Root continues (no missing checkpoint) | 0 before / 1 after | PASS |
+| Variant | Run             | Accept/Reject | Last checkpoint                            |         Tool count | Result                 |
+| ------- | --------------- | ------------- | ------------------------------------------ | -----------------: | ---------------------- |
+| C0      | C0-A01          | Accept        | 7 — Root continues                         | 0 before / 1 after | PASS                   |
+| C0      | C0-R01          | Reject        | 5 — rejection honoured, tool not executed  | 0 before / 0 after | PASS                   |
+| T0      | T0-01           | n/a           | 7 — Root continues after task result       |                  1 | PASS                   |
+| T0      | T0-02 attempt 1 | n/a           | 0 — Root's first model call                |                  0 | INVALID (provider 503) |
+| T0      | T0-02           | n/a           | 7 — Root continues after task result       |                  1 | PASS                   |
+| T0      | T0-03           | n/a           | 7 — Root continues after task result       |                  1 | PASS                   |
+| T1      | T1-A01          | Accept        | L — Root continues (no missing checkpoint) | 0 before / 1 after | PASS                   |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -181,15 +181,15 @@ for `T0-02`: **1** (the aborted attempt below contributed none).
 
 T0-02 reproduces every structural landmark recorded for T0-01, with new ids:
 
-| | T0-01 | T0-02 |
-| --- | --- | --- |
-| delegation call id | `call_2146904` | `call_1354044` |
-| child branch | `worker@call_2146904` | `worker@call_1354044` |
-| worker RESP re-uses delegation id | yes | yes |
-| payload byte-identical to `finish_task` arg | yes | yes |
-| worker RESP model-authored | no | no |
-| `transfer_to_agent` present | no | no |
-| distinct branches in session | `None`, `worker@…` | `None`, `worker@…` |
+|                                             | T0-01                 | T0-02                 |
+| ------------------------------------------- | --------------------- | --------------------- |
+| delegation call id                          | `call_2146904`        | `call_1354044`        |
+| child branch                                | `worker@call_2146904` | `worker@call_1354044` |
+| worker RESP re-uses delegation id           | yes                   | yes                   |
+| payload byte-identical to `finish_task` arg | yes                   | yes                   |
+| worker RESP model-authored                  | no                    | no                    |
+| `transfer_to_agent` present                 | no                    | no                    |
+| distinct branches in session                | `None`, `worker@…`    | `None`, `worker@…`    |
 
 **T0-02 attempt 1 — INVALID (provider 503).** Session
 `2184c025-2acb-4314-85b1-c246a2dfc448`, 2 events, preserved at
@@ -248,15 +248,15 @@ user:TEXT:F -> root:CALL:worker:M -> worker:CALL:write_value:M
 
 `T0-01 == T0-02` and `T0-01 == T0-03`, compared programmatically.
 
-| | T0-01 | T0-02 | T0-03 |
-| --- | --- | --- | --- |
-| delegation call id | `call_2146904` | `call_1354044` | `call_1505750` |
-| child branch | `worker@call_2146904` | `worker@call_1354044` | `worker@call_1505750` |
-| worker RESP re-uses delegation id | yes | yes | yes |
-| payload identical to `finish_task` arg | yes | yes | yes |
-| worker RESP model-authored | no | no | no |
-| `transfer_to_agent` present | no | no | no |
-| execution count | 1 | 1 | 1 |
+|                                        | T0-01                 | T0-02                 | T0-03                 |
+| -------------------------------------- | --------------------- | --------------------- | --------------------- |
+| delegation call id                     | `call_2146904`        | `call_1354044`        | `call_1505750`        |
+| child branch                           | `worker@call_2146904` | `worker@call_1354044` | `worker@call_1505750` |
+| worker RESP re-uses delegation id      | yes                   | yes                   | yes                   |
+| payload identical to `finish_task` arg | yes                   | yes                   | yes                   |
+| worker RESP model-authored             | no                    | no                    | no                    |
+| `transfer_to_agent` present            | no                    | no                    | no                    |
+| execution count                        | 1                     | 1                     | 1                     |
 
 Every id and branch differs between runs while the structure is constant, so
 the agreement is not an artefact of re-used identifiers.
