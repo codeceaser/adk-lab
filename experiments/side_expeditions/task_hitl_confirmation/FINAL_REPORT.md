@@ -277,6 +277,13 @@ triggered here; model-specific retry behaviour another model would not
 exhibit. The experiment did not vary the instruction — ground rule 9 barred
 changing it mid-expedition.
 
+**Both have since been addressed, after this report was first written.** The
+framework-level alternative is eliminated by the source reading in §10: no
+such path exists in 2.6.3. The inference itself was then tested directly by
+the follow-on experiments in §11, which varied the instruction and found the
+retry stops — leaving only the model-specific alternative untested, since
+every run used one model.
+
 **Consequence, if that inference holds** (also inference): at Root level a
 post-rejection retry merely leaves a pending prompt, whereas inside task mode
 it means control never returns to Root. T2-R02 showed the accumulation can
@@ -399,9 +406,101 @@ Checked against all 14 confirmation runs:
 
 This is a source reading that retrodicts 14/14 runs, not an experimental
 result. It was not tested by varying the code — doing so (for instance
-setting `skip_summarization` on the MCP pending branch, or varying the worker
-instruction) would be a separate controlled experiment. The inference in §8
-about the instruction lacking a failure branch remains untested by
-experiment; what this section adds is that **the framework side of that
-inference is now settled** — ADK genuinely leaves the post-rejection decision
-to the model.
+setting `skip_summarization` on the MCP pending branch) would be a separate
+controlled experiment. What this section settles is **the framework side**
+of the §8 inference: ADK genuinely leaves the post-rejection decision to the
+model. The instruction side was untested when this was written; §11 tests
+it.
+
+---
+
+## 11. Follow-on experiments R0 and R0.1 — semantic rejection handling
+
+**Added after §§1–10.** These are follow-on experiments, not part of the
+original expedition, and they change none of its results. They test the §8
+inference directly: that the retry loop follows from the worker instruction
+having no defined completion path after a rejection.
+
+Both copy the T2 topology — Root → `mode="task"` worker → native
+`McpToolset(require_confirmation=True)` → the same shared MCP server — and
+change **only instruction text**. Verified by comparing 18 model-visible and
+wiring fields per step: R0 differs from T2 in `worker.instruction` alone;
+R0.1 differs from R0 in `root.instruction` alone. No callbacks, state flags,
+state machine, retry guards, `ResumabilityConfig`, structured task output or
+MCP change; `planner`, `output_schema` and `output_key` unset on both agents
+throughout.
+
+### Result matrix
+
+| Variant       | Change                   | Reject                                                                                            | Accept       |
+| ------------- | ------------------------ | ------------------------------------------------------------------------------------------------- | ------------ |
+| T2 (baseline) | —                        | worker re-issues `write_value`; `finish_task` never called; control never returns to Root         | 3/3 PASS     |
+| R0            | worker rejection path    | worker calls `finish_task({"result":"cancelled"})` and does not retry — but **Root re-delegates** | not run      |
+| R0.1          | + Root cancellation path | **3/3 PASS** — one attempt, one confirmation, task ends                                           | **3/3 PASS** |
+
+R0-R01 is recorded at two scopes in `RESULTS.md`: PASS per-delegation (all
+ten acceptance criteria within delegation 1), FAIL per-session under the R0
+brief's own definition, since a second `write_value` call did appear after
+the Reject. Both are recorded because they answer different questions.
+
+### What the runs demonstrate
+
+- **The §8 inference holds.** In all five original Reject runs the event
+  after `{"error": "This tool call is rejected."}` was a fresh
+  `CALL:write_value`. Under the R0 worker instruction it is
+  `CALL:finish_task` with a cancelled result. Instruction text alone changed
+  the worker's interpretation of a rejection.
+- **The retry relocated before it disappeared.** R0 fixed the worker and
+  exposed the same gap one level up: Root received `{"result": "cancelled"}`
+  and re-delegated the identical request, byte-identical `args.request`,
+  producing a second child branch and a second confirmation. R0.1's Root
+  instruction closed that.
+- **Neither path regressed.** R0.1 Accept runs are structurally identical to
+  T2's: one `write_value` call continued under its own id, one MCP
+  execution, delegation id re-used on the synthesized response.
+- **Reject held through a degraded turn.** R0.1-R03 hit
+  `MODEL_RETURNED_NO_CONTENT` on the MCP summarisation turn — the turn §10
+  identifies as existing only because `McpTool` omits `skip_summarization` —
+  and still reached `finish_task` with a cancelled result on the next model
+  turn.
+- **Concurrent pending confirmations did not recur.** The behaviour seen in
+  2 of 6 T2 runs appeared in none of the six R0.1 runs. Not claimed as
+  caused by the instruction change; six runs is too few, and the behaviour
+  was intermittent in T2 as well.
+
+### Limits
+
+- **Single model and provider**, as throughout: `gemini-3.5-flash` via the
+  Gemini API. The behaviour being suppressed is model-driven, so this does
+  not transfer to another model without re-testing.
+- **`"cancelled"` is a model-chosen string, not a contract.** All three
+  Reject runs produced exactly `{"result": "cancelled"}` and all three
+  Accept runs produced a full sentence, but nothing enforces either. A
+  consumer keying on that string would be depending on unenforced model
+  behaviour. Introducing a structured task output was explicitly out of
+  scope for R0/R0.1.
+- **Uneven measurement strength on the Accept side.** All three Reject runs
+  have a live pre-click execution count; only one of the three Accept runs
+  does. A02b and A03 were answered before a reading could be taken, so their
+  zeros are reconstructed from timestamps.
+- **One abandoned turn is preserved and excluded.** An `R0.1-A02` attempt
+  was issued into the session already holding R0.1-R03 rather than a fresh
+  one; it executed nothing and does not count toward the Accept total. It
+  did supply the only evidence for the final clause of both instructions —
+  on a new explicit user request, both agents correctly re-attempted rather
+  than treating the earlier cancellation as permanently binding. One
+  observation, from an abandoned turn.
+- **Not a production solution.** R0/R0.1 establish that prompt semantics
+  alone are sufficient to make Reject terminal in this composition. Whether
+  that is *robust enough* for production — against instruction drift, model
+  changes, or adversarial inputs — is not tested here, and mechanisms such
+  as structured task output or callback-enforced cancellation were
+  deliberately excluded.
+
+### Relation to the original conclusion
+
+§7 concluded that the production failure must involve another integration
+variable, since all five variants passed. That stands. R0/R0.1 do not
+identify the production failure; they address the separate usability problem
+the expedition surfaced along the way — that a rejected confirmation left the
+task uncompleted and control never returned to Root.
