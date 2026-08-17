@@ -10,6 +10,9 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | C0 | C0-A01 | Accept | 7 — Root continues | 0 before / 1 after | PASS |
 | C0 | C0-R01 | Reject | 5 — rejection honoured, tool not executed | 0 before / 0 after | PASS |
 | T0 | T0-01 | n/a | 7 — Root continues after task result | 1 | PASS |
+| T0 | T0-02 attempt 1 | n/a | 0 — Root's first model call | 0 | INVALID (provider 503) |
+| T0 | T0-02 | n/a | 7 — Root continues after task result | 1 | PASS |
+| T0 | T0-03 | n/a | 7 — Root continues after task result | 1 | PASS |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -144,17 +147,133 @@ Directly demonstrated by this run:
   model-authored: #4, #6, #7.
 - Root, not the worker, produces the user-facing text (#8).
 
-Caveat: n=1. T0-02 and T0-03 are still outstanding, so repeatability of the
-task lifecycle is not yet established.
+Caveat at time of writing: n=1. Superseded — see "T0 repeatability: 3/3"
+below; the lifecycle reproduced identically in T0-02 and T0-03.
 
 Methodological note: inter-event gaps do not cleanly bracket model latency
 (#5 is model-authored but lands 31 ms after #4, while non-model #6 lands
 2.3 s later). Attribution in this file therefore relies on
 `modelVersion`/`usageMetadata`, not on timing.
 
+**T0-02 (no confirmation) — PASS.** Session
+`42581fbf-5117-4b59-8ac3-c76cc12a8e62`, 8 events, exported to
+`evidence/T0-02_events.jsonl`. All seven T0 checkpoints occurred in order.
+
+```
+#1 23:20:01.752  user    branch=None                 model=NO   TEXT "... run marker T0-02."
+#2 23:20:01.776  root    branch=None                 model=yes  CALL worker       id=call_1354044
+#3 23:20:08.350  worker  branch=worker@call_1354044  model=yes  CALL write_value  id=call_1218251
+                           args={"run_marker":"T0-02","value":"alpha"}
+#4 23:20:14.792  worker  branch=worker@call_1354044  model=NO   RESP write_value  id=call_1218251
+                           -> {"status":"ok","marker":"TOOL_EXECUTED variant=t0 ... T0-02 ..."}
+#5 23:20:14.814  worker  branch=worker@call_1354044  model=yes  CALL finish_task  id=call_3715607
+                           args={"result":"Successfully wrote the value \"alpha\" with run marker \"T0-02\"."}
+#6 23:20:22.479  worker  branch=worker@call_1354044  model=NO   RESP finish_task  id=call_3715607
+                           -> {"result":"Task completed."}
+#7 23:20:22.490  user    branch=None                 model=NO   RESP worker       id=call_1354044
+                           -> {"result":"Successfully wrote the value \"alpha\" with run marker \"T0-02\"."}
+#8 23:20:22.518  root    branch=None                 model=yes  TEXT "I have successfully written ..."
+```
+
+Tool-side log records one execution at `23:20:14.791139Z`. Execution count
+for `T0-02`: **1** (the aborted attempt below contributed none).
+
+T0-02 reproduces every structural landmark recorded for T0-01, with new ids:
+
+| | T0-01 | T0-02 |
+| --- | --- | --- |
+| delegation call id | `call_2146904` | `call_1354044` |
+| child branch | `worker@call_2146904` | `worker@call_1354044` |
+| worker RESP re-uses delegation id | yes | yes |
+| payload byte-identical to `finish_task` arg | yes | yes |
+| worker RESP model-authored | no | no |
+| `transfer_to_agent` present | no | no |
+| distinct branches in session | `None`, `worker@…` | `None`, `worker@…` |
+
+**T0-02 attempt 1 — INVALID (provider 503).** Session
+`2184c025-2acb-4314-85b1-c246a2dfc448`, 2 events, preserved at
+`evidence/T0-02-INVALID-503_events.jsonl` rather than discarded.
+
+```
+#1 22:50:44.556  user  branch=None  TEXT "Write the value "alpha" with run marker "T0-02"."
+#2 22:50:48.653  root  branch=None  content=null  errorCode=ServerError
+                         errorMessage=503 UNAVAILABLE. "This model is currently
+                         experiencing high demand. Spikes in demand are usually
+                         temporary. Please try again later."
+```
+
+Classified INVALID, not FAIL: the run terminated on Root's first model call,
+before any delegation, tool call or tool execution, so the intended test path
+was never entered. Execution count: 0. The exception is
+`google.genai.errors.ServerError` raised from the provider inside
+`google/genai/errors.py`, surfaced through ADK's node runner; it is not an
+ADK execution-path failure. The marker `T0-02` was re-used by the successful
+retry ~30 minutes later; per-marker counting stays unambiguous only because
+this attempt executed the tool zero times.
+
+**T0-03 (no confirmation) — PASS.** Session
+`f94c615c-8c90-4950-b42e-2461c87c40c7`, 8 events, exported to
+`evidence/T0-03_events.jsonl`. All seven T0 checkpoints occurred in order.
+
+```
+#1 00:31:40.215  user    branch=None                 model=NO   TEXT "... run marker T0-03."
+#2 00:31:40.261  root    branch=None                 model=yes  CALL worker       id=call_1505750
+#3 00:32:19.513  worker  branch=worker@call_1505750  model=yes  CALL write_value  id=call_2797296
+#4 00:32:38.951  worker  branch=worker@call_1505750  model=NO   RESP write_value  id=call_2797296
+                           -> {"status":"ok","marker":"TOOL_EXECUTED variant=t0 ... T0-03 ..."}
+#5 00:32:38.966  worker  branch=worker@call_1505750  model=yes  CALL finish_task  id=call_969880
+#6 00:33:14.652  worker  branch=worker@call_1505750  model=NO   RESP finish_task  id=call_969880
+                           -> {"result":"Task completed."}
+#7 00:33:14.662  user    branch=None                 model=NO   RESP worker       id=call_1505750
+                           -> {"result":"Successfully wrote the value \"alpha\" with run marker \"T0-03\"."}
+#8 00:33:14.687  root    branch=None                 model=yes  TEXT "I have successfully written ..."
+```
+
+Execution count for `T0-03`: **1**. Counts across the variant: T0-01 = 1,
+T0-02 = 1, T0-03 = 1. Total lines in `tool_executions.jsonl` = 4 (three T0
+plus one C0-A01); no run executed the body twice, and none executed it zero
+times.
+
+### T0 repeatability: 3/3
+
+Reducing each session to `author:kind:name:model-or-framework` yields a
+byte-identical sequence for all three runs:
+
+```
+user:TEXT:F -> root:CALL:worker:M -> worker:CALL:write_value:M
+  -> worker:RESP:write_value:F -> worker:CALL:finish_task:M
+  -> worker:RESP:finish_task:F -> user:RESP:worker:F -> root:TEXT:M
+```
+
+`T0-01 == T0-02` and `T0-01 == T0-03`, compared programmatically.
+
+| | T0-01 | T0-02 | T0-03 |
+| --- | --- | --- | --- |
+| delegation call id | `call_2146904` | `call_1354044` | `call_1505750` |
+| child branch | `worker@call_2146904` | `worker@call_1354044` | `worker@call_1505750` |
+| worker RESP re-uses delegation id | yes | yes | yes |
+| payload identical to `finish_task` arg | yes | yes | yes |
+| worker RESP model-authored | no | no | no |
+| `transfer_to_agent` present | no | no | no |
+| execution count | 1 | 1 | 1 |
+
+Every id and branch differs between runs while the structure is constant, so
+the agreement is not an artefact of re-used identifiers.
+
+Model latency in T0-03 was markedly degraded (39 s between #2 and #3, 36 s
+between #5 and #6, versus 2-3 s in T0-01) during the same provider load that
+produced the 503 above. It changed the timing, not the event structure or the
+execution count.
+
+**T0 conclusion: the task lifecycle completed 3/3 and returned control to
+Root in every run.** Under the decision matrix, T0 PASS means the basic task
+lifecycle is reliable in this environment, so a T1 failure could not be
+attributed to task delegation or task completion alone.
+
 ## Failures Observed
 
-_(none yet)_
+_(none yet — the 503 above is classified INVALID, not a failure of an ADK
+execution path)_
 
 ## Interpretation
 
@@ -163,7 +282,8 @@ above, not an additional observation, and it must not be cited as a finding.
 
 ### Inference: task mode is a bounded child branch, not a conversational handover
 
-Based on T0-01 (n=1), the `mode="task"` lifecycle appears to work like this:
+Based on T0-01, T0-02 and T0-03 (3/3, identical structure, distinct ids), the
+`mode="task"` lifecycle appears to work like this:
 
 ```
 Root turn            CALL worker(request=...)      id=call_2146904   [model]
@@ -200,7 +320,7 @@ back at Root         RESP worker  id=call_2146904  [not model]
 
 Point 4 is the most strongly evidenced; point 3 is the most speculative.
 
-Scope limit: this is one run of one variant on one model. It says nothing
-about what happens when a confirmation has to cross the child-branch
-boundary — that is exactly what T1 tests, and no expectation about the T1
-outcome is recorded here.
+Scope limit: this is three runs of one variant on one model, all without
+confirmation. It says nothing about what happens when a confirmation has to
+cross the child-branch boundary — that is exactly what T1 tests, and no
+expectation about the T1 outcome is recorded here.
