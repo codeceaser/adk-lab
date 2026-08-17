@@ -30,6 +30,7 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | T2      | T2-A02                      | Accept                  | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                     |
 | T2      | T2-A03                      | Accept (1 of 2 pending) | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS (see concurrent-confirmations note) |
 | T2      | T2-R01 (Reject run 1 of 2)  | Reject                  | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                     |
+| T2      | T2-R02 (Reject run 2 of 2)  | Reject (1 of 2 pending) | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                     |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -1096,6 +1097,72 @@ failing to complete after a rejection.
 Rejection semantics are identical across both transports and both
 compositions: `confirmed:false` recorded, the pending call terminated against
 its original id, zero executions, and the model re-issuing under a new id.
+
+**T2-R02 (Reject) — PASS.** Second planned T2 Reject run, and the last run of
+the experiment. Session `30902f69-3b52-4796-8005-104ac5089628`, 18 events,
+exported to `evidence/T2-R02_events.jsonl`. Byte-identical to the live
+session (same 18 event ids, sha256 `a959f212480eed912cbba128c036cae3`).
+Pre-click count measured live.
+
+Two confirmations were already pending when the operator was shown the
+state — the concurrent-pending behaviour first seen in T2-A03, now
+reproduced. The operator stated in advance that they would reject one and
+leave the other, and did so.
+
+```
+#3  15:15:25.311  worker  MODEL      CALL write_value  id=call_1659641
+#5  15:15:27.988  worker  framework  CALL adk_request_confirmation adk-ac05f14d-... -> call_1659641
+#6  15:15:28.047  worker  MODEL      CALL write_value  id=call_643600    <- 59ms later, nothing rejected
+#8  15:15:34.329  worker  framework  CALL adk_request_confirmation adk-ec7426df-... -> call_643600
+      ---- MCP execution count for T2-R02: 0, with TWO confirmations pending ----
+#10 15:17:05.585  user    framework  RESP adk_request_confirmation adk-ac05f14d-...
+                             -> {"confirmed": false, ...}        (the first one)
+#11 15:17:05.609  worker  framework  RESP write_value  id=call_1659641
+                             -> {"error": "This tool call is rejected."}
+#12 15:17:05.630  worker  MODEL      CALL write_value  id=call_2210177   <- NEW
+#14 15:17:09.233  worker  framework  CALL adk_request_confirmation adk-dc16f0c7-... -> call_2210177
+#15 15:17:09.276  worker  MODEL      CALL write_value  id=call_2629216   <- NEW again
+#17 15:17:13.280  worker  framework  CALL adk_request_confirmation adk-c3428eb6-... -> call_2629216
+#18 15:17:13.314  worker  MODEL      TEXT "I attempted to write ... but the too..."
+                             (frozen here; three confirmations outstanding)
+      ---- MCP execution count for T2-R02: 0 ----
+```
+
+Final state of the four `write_value` calls:
+
+| Call           | Status                                   |
+| -------------- | ---------------------------------------- |
+| `call_1659641` | rejected — the one the operator clicked  |
+| `call_643600`  | pending stub, untouched by the rejection |
+| `call_2210177` | pending stub, issued after the rejection |
+| `call_2629216` | pending stub, issued after the rejection |
+
+Directly demonstrated by this run:
+
+- The MCP tool body executed **zero** times: `T2-R02` never appears in
+  `mcp_tool_executions.jsonl` (total unchanged at 4) and no response carries
+  an `MCP_TOOL_EXECUTED` marker.
+- **Rejecting one pending call left its sibling untouched.** `call_643600`
+  remained a pending stub — the rejection did not cascade to other
+  outstanding confirmations. This mirrors T2-A03, where accepting one call
+  left the other pending and unexecuted.
+- **The retry after a rejection produced two new calls, not one**
+  (`call_2210177` then `call_2629216`), leaving three confirmations
+  outstanding at freeze. Every earlier Reject run produced exactly one
+  re-issue.
+- `finish_task` calls: **0**. Responses to Root: **0**. Control did not
+  return to Root.
+
+Final execution logs for the whole experiment:
+
+```
+MCP           C1-A01 1, T2-A01 1, T2-A02 1, T2-A03 1
+FunctionTool  C0-A01 1, T0-01 1, T0-02 1, T0-03 1, T1-A01 1,
+              T1-A02 2, T1-A03c 1, T1-A03d 1
+```
+
+Every marker counts 1 except `T1-A02`, whose 2 lines belong to two separate
+sessions under a re-used marker and are attributed per session above.
 
 ## Failures Observed
 
