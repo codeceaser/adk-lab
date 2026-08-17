@@ -13,6 +13,7 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | T0 | T0-02 attempt 1 | n/a | 0 — Root's first model call | 0 | INVALID (provider 503) |
 | T0 | T0-02 | n/a | 7 — Root continues after task result | 1 | PASS |
 | T0 | T0-03 | n/a | 7 — Root continues after task result | 1 | PASS |
+| T1 | T1-A01 | Accept | L — Root continues (no missing checkpoint) | 0 before / 1 after | PASS |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -269,6 +270,71 @@ execution count.
 Root in every run.** Under the decision matrix, T0 PASS means the basic task
 lifecycle is reliable in this environment, so a T1 failure could not be
 attributed to task delegation or task completion alone.
+
+**T1-A01 (Accept) — PASS. Checkpoints A-L all occurred; no missing
+checkpoint.** Session `4095d974-a5e9-46e0-a489-0496614d0b92`, 11 events,
+single invocation `e-58828342-4f94-4a40-b1fe-db28f6fca9e1`, exported to
+`evidence/T1-A01_events.jsonl`.
+
+The 5-event pre-click state was captured live before the Accept was
+submitted, so the pre-click count is a measurement rather than a
+reconstruction.
+
+```
+#1  00:43:18.940  user    branch=None                 model=NO   TEXT "... run marker T1-A01."
+#2  00:43:18.960  root    branch=None                 model=yes  CALL worker       id=call_1728652
+#3  00:43:37.206  worker  branch=worker@call_1728652  model=yes  CALL write_value  id=call_902796
+                            args={"run_marker":"T1-A01","value":"alpha"}
+#4  00:43:56.672  worker  branch=worker@call_1728652  model=NO   RESP write_value  id=call_902796
+                            -> {"error":"This tool call requires confirmation, ..."}
+                            event.actions.requestedToolConfirmations = ['call_902796']
+#5  00:43:56.672  worker  branch=worker@call_1728652  model=NO   CALL adk_request_confirmation
+                            id=adk-bbabfe4e-cf31-4685-b64b-fad076d712db
+                            args.originalFunctionCall.id = call_902796
+                            longRunningToolIds=['adk-bbabfe4e-...']
+      ---- tool execution count for T1-A01: 0 (measured live, pre-click) ----
+#6  00:50:09.460  user    branch=worker@call_1728652  model=NO   RESP adk_request_confirmation
+                            id=adk-bbabfe4e-...  -> {"confirmed": true, "payload": {...}}
+#7  00:50:09.480  worker  branch=worker@call_1728652  model=NO   RESP write_value  id=call_902796
+                            -> {"status":"ok","marker":"TOOL_EXECUTED variant=t1 ... T1-A01 ..."}
+#8  00:50:09.501  worker  branch=worker@call_1728652  model=yes  CALL finish_task  id=call_2088500
+#9  00:50:44.940  worker  branch=worker@call_1728652  model=NO   RESP finish_task  id=call_2088500
+                            -> {"result":"Task completed."}
+#10 00:50:44.951  user    branch=None                 model=NO   RESP worker       id=call_1728652
+#11 00:50:44.972  root    branch=None                 model=yes  TEXT "The value "alpha" has been ..."
+      ---- tool execution count for T1-A01: 1 ----
+```
+
+Checkpoint mapping: A=#2, B=#3, C=#5, D=observed live pre-click, E=#6,
+F=#6, G=tool log `00:50:09.479462Z`, H=#7, I=#8, J=#9, K=#10, L=#11.
+
+Directly demonstrated by this run:
+
+- **Confirmation continuation preserved the pending call.** The session
+  contains exactly **one** `write_value` FunctionCall (`call_902796`), and
+  both the pre-Accept stub (#4) and the post-Accept real result (#7) carry
+  that same id. The pending call was continued, not re-issued. Contrast
+  C0-R01, where the model's own retry produced a *new* id `call_1090589`.
+- **Execution stayed on the original child branch.** Exactly one child
+  branch exists in the session, `worker@call_1728652`, derived from the
+  delegation call id. Events #3-#9 all carry it.
+- **The Accept re-entered on the child branch.** Event #6 is authored by
+  `user` but carries `branch=worker@call_1728652`, not `branch=None`. Its
+  id matches the confirmation request id.
+- The confirmation request itself (#5) is authored by `worker`, on the child
+  branch, and is marked as a long-running tool
+  (`longRunningToolIds=['adk-bbabfe4e-...']`). In C0 the equivalent request
+  was authored by `c0_root` at `branch=None`.
+- **Task completion and return to Root behaved as in T0.** `finish_task`
+  call (#8, model-authored) and response (#9, `"Task completed."`); the
+  delegation call is satisfied at #10 by a response re-using id
+  `call_1728652`, payload byte-identical to the `finish_task` argument and
+  carrying no `modelVersion`.
+- Root produced the subsequent user-facing response (#11).
+
+Caveat: n=1, Accept path only. T1-A02, T1-A03, T1-R01 and T1-R02 remain
+outstanding. A composition can succeed once and fail on repetition, so no
+conclusion about T1 is drawn from this run alone.
 
 ## Failures Observed
 
