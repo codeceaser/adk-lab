@@ -29,6 +29,7 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | T2      | T2-A01                      | Accept                  | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                     |
 | T2      | T2-A02                      | Accept                  | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS                                     |
 | T2      | T2-A03                      | Accept (1 of 2 pending) | L — Root continues (no missing checkpoint) |                 0 before / 1 after | PASS (see concurrent-confirmations note) |
+| T2      | T2-R01 (Reject run 1 of 2)  | Reject                  | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                     |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -1035,6 +1036,66 @@ request rather than an extra execution.
 
 MCP execution log after the three Accepts: `C1-A01` 1, `T2-A01` 1,
 `T2-A02` 1, `T2-A03` 1 — one execution per marker, none doubled.
+
+**T2-R01 (Reject) — PASS.** First of the two planned T2 Reject runs. Session
+`e692c00e-1659-455d-97f8-5aaf538964eb`, 12 events, exported to
+`evidence/T2-R01_events.jsonl`. Frozen after a single rejection with the
+follow-up confirmation unanswered. Byte-identical to the live session (same
+12 event ids, sha256 `815320faf3c1e619521a80170feceaf7`). Pre-click count
+measured live; a single confirmation was pending, so this run is directly
+comparable to the other four Reject runs.
+
+```
+#2  15:11:51.750  root    branch=None                 MODEL      CALL worker       id=call_1153707
+#3  15:11:54.812  worker  branch=worker@call_1153707  MODEL      CALL write_value  id=call_3301875
+#4  15:11:57.493  worker  branch=worker@call_1153707  framework  RESP write_value  [pending stub]
+#5  15:11:57.494  worker  branch=worker@call_1153707  framework  CALL adk_request_confirmation
+                             id=adk-838ee66a-6de3-4e6d-a814-17acdb0d2a2b -> call_3301875
+      ---- MCP execution count for T2-R01: 0 (measured live, pre-click) ----
+#7  15:12:31.426  user    branch=worker@call_1153707  framework  RESP adk_request_confirmation
+                             -> {"confirmed": false, "payload": {...}}
+#8  15:12:31.447  worker  branch=worker@call_1153707  framework  RESP write_value  id=call_3301875
+                             -> {"error": "This tool call is rejected."}
+      ---- MCP execution count for T2-R01: 0 ----
+#9  15:12:31.470  worker  branch=worker@call_1153707  MODEL      CALL write_value  id=call_348286  <- NEW id
+#11 15:12:35.449  worker  branch=worker@call_1153707  framework  CALL adk_request_confirmation
+                             id=adk-c8a0a80f-8b81-4e54-a3f1-1d17cce0d46c -> call_348286
+                             (left unanswered; session frozen here)
+```
+
+Directly demonstrated by this run:
+
+- Rejecting a confirmation owned by a `mode="task"` child and served over MCP
+  records `{"confirmed": false, ...}` on the child branch, and ADK terminates
+  the pending call against its original id.
+- The MCP tool body executed **zero** times: the string `T2-R01` does not
+  occur in `mcp_tool_executions.jsonl` (total unchanged at 4), and no
+  `write_value` response in the session carries an `MCP_TOOL_EXECUTED`
+  marker.
+- The worker re-issued under a **new** id (`call_348286`), producing a second
+  confirmation request.
+- `finish_task` calls: **0**. Responses to Root: **0**. Control did not
+  return to Root — the same as T1-A03e and T1-R02, now over MCP.
+
+### Reject behaviour: 5/5 frozen single-rejection runs agree
+
+| Run     | Composition         | `write_value` calls | tool executed | `finish_task` | resp. to Root |
+| ------- | ------------------- | ------------------: | ------------- | ------------: | ------------: |
+| C0-R01  | Root / FunctionTool |                   2 | no            |           n/a |           n/a |
+| T1-A03e | task / FunctionTool |                   2 | no            |             0 |             0 |
+| T1-R02  | task / FunctionTool |                   2 | no            |             0 |             0 |
+| C1-R01  | Root / MCP          |                   2 | no            |           n/a |           n/a |
+| T2-R01  | task / MCP          |                   2 | no            |             0 |             0 |
+
+The `finish_task` and response-to-Root columns are marked n/a for the two
+Root-level runs: those variants have no task, so zeros there would be
+trivially true rather than informative. The meaningful comparison for those
+two columns is among the three task-mode runs, where all three show the task
+failing to complete after a rejection.
+
+Rejection semantics are identical across both transports and both
+compositions: `confirmed:false` recorded, the pending call terminated against
+its original id, zero executions, and the model re-issuing under a new id.
 
 ## Failures Observed
 
