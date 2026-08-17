@@ -33,6 +33,7 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | T2      | T2-R02 (Reject run 2 of 2)  | Reject (1 of 2 pending) | F — rejection recorded, tool not executed  |                 0 before / 0 after | PASS                                     |
 | R0      | R0-R01 (delegation 1)       | Reject                  | finish_task with cancelled result          |                 0 before / 0 after | PASS (per-delegation scope)              |
 | R0      | R0-R01 (session)            | Reject                  | Root re-delegated instead of responding    |                 0 before / 0 after | FAIL — semantic retry (session scope)    |
+| R0.1    | R0.1-R01                    | Reject                  | Root responded with a cancellation         |                 0 before / 0 after | PASS (all 8 conditions)                  |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -1263,6 +1264,104 @@ did appear after the Reject.
 Not claimed: that Root's re-delegation is caused by its instruction lacking a
 cancellation path. R0 did not vary Root's instruction — it was held identical
 to T2 by design (R0 brief §3) — so that remains untested.
+
+---
+
+## R0.1 — terminal cancellation semantics at Root
+
+R0.1 copies R0 exactly and changes **only the Root instruction**. Comparing
+18 model-visible and wiring fields between `r0_task_mcp_rejection_semantics`
+and `r0_1_task_mcp_root_semantics`, `root.instruction` is the only field that
+differs; `worker.instruction` is byte-identical. No callbacks, state flags,
+state machine, retry guards, `ResumabilityConfig`, structured task output or
+MCP change; both agents have `planner`, `output_schema` and `output_key`
+unset, and the only tools present are ADK-injected.
+
+R0.1 Root instruction, verbatim (line 1 is R0's Root instruction unchanged):
+
+```text
+When the user asks to write a value, delegate to worker with the exact value and run marker provided.
+If the worker reports that the operation was cancelled or rejected by the user, that is the final outcome for this request:
+- do not delegate the same write again;
+- do not attempt the operation by any other means;
+- tell the user the operation was cancelled.
+Attempt the write again only after the user makes a new, explicit request.
+```
+
+**R0.1-R01 (Reject) — PASS, all eight conditions.** Session
+`f8bbab44-f2f2-4ac0-a324-157db9351691`, 12 events, exported to
+`evidence/R0.1-R01_events.jsonl`, byte-identical to the live session (sha256
+`caa0f4a1aee5a8c0e532e841c93d3f37`). Pre-click count measured live.
+
+```
+#1  16:07:30.371  user    branch=None                 framework  TEXT "... run marker R0.1-R01."
+#2  16:07:30.405  root    branch=None                 MODEL      CALL worker       id=call_1776588
+#3  16:07:34.269  worker  branch=worker@call_1776588  MODEL      CALL write_value  id=call_4046227
+#4  16:07:36.786  worker  branch=worker@call_1776588  framework  RESP write_value  [pending stub]
+#5  16:07:36.787  worker  branch=worker@call_1776588  framework  CALL adk_request_confirmation
+                             id=adk-4112b9ec-70a3-4a52-87f8-7385788169ab -> call_4046227
+#6  16:07:36.829  worker  branch=worker@call_1776588  MODEL      TEXT "Civic approval is required ..."
+      ---- MCP execution count for R0.1-R01: 0 (measured live, pre-click) ----
+#7  16:08:48.395  user    branch=worker@call_1776588  framework  RESP adk_request_confirmation
+                             -> {"confirmed": false, "payload": {...}}
+#8  16:08:48.414  worker  branch=worker@call_1776588  framework  RESP write_value  id=call_4046227
+                             -> {"error": "This tool call is rejected."}
+#9  16:08:48.436  worker  branch=worker@call_1776588  MODEL      CALL finish_task  id=call_2308211
+                             args={"result": "cancelled"}
+#10 16:08:51.321  worker  branch=worker@call_1776588  framework  RESP finish_task -> "Task completed."
+#11 16:08:51.337  user    branch=None                 framework  RESP worker id=call_1776588
+                             -> {"result": "cancelled"}
+#12 16:08:51.365  root    branch=None                 MODEL      TEXT "The operation to write the value
+                             "alpha" with run marker "R0.1-R01" was cancelled."     <- decisive
+      ---- MCP execution count for R0.1-R01: 0 ----
+```
+
+| # | Condition | Result |
+| - | --------- | ------ |
+| 1 | exactly one Root→worker delegation | PASS (`call_1776588`) |
+| 2 | exactly one `write_value` call | PASS (`call_4046227`) |
+| 3 | exactly one confirmation request | PASS (`adk-4112b9ec`) |
+| 4 | MCP execution count 0 | PASS (log unchanged at 4) |
+| 5 | worker `finish_task` with cancelled outcome | PASS (`{"result": "cancelled"}`) |
+| 6 | cancelled result reaches Root | PASS (#11) |
+| 7 | Root does not re-delegate | PASS |
+| 8 | Root produces a final cancellation response | PASS (#12) |
+
+### Directly demonstrated by this run
+
+- **Event #12 is the one that changed.** In R0-R01 that slot held
+  `CALL worker id=call_2657493`, a second delegation. Here it is a
+  user-facing cancellation message and the session ends.
+- The session contains **two** branch values (`None`,
+  `worker@call_1776588`) against three in R0-R01.
+- The MCP tool executed **zero** times; `R0.1-R01` never appears in
+  `mcp_tool_executions.jsonl`.
+- The worker half behaved exactly as in R0-R01 — `finish_task` with
+  `{"result": "cancelled"}` immediately after the rejection, no retry —
+  confirming the R0 instruction still works with the Root instruction
+  changed underneath it.
+
+The user-visible shape is now the target one: one write attempt, one
+confirmation, Reject, task ends.
+
+### Progression across the three variants
+
+| Variant | Worker after rejection                | Root after cancelled result |
+| ------- | ------------------------------------- | --------------------------- |
+| T2      | re-issues `write_value`               | never reached               |
+| R0      | `finish_task({"result":"cancelled"})` | re-delegates                |
+| R0.1    | `finish_task({"result":"cancelled"})` | responds and stops          |
+
+Each variant closed the gap the previous one exposed, using instruction text
+alone.
+
+**Caveat: n=1.** R0.1-R01 is a single run. R0's worker semantics also held on
+their first run and the failure simply moved up a level, and the retry
+behaviour being suppressed is model-driven and varied between runs elsewhere
+in this expedition (T2 produced concurrent pending calls in 2 of 6 runs).
+`R0.1-R02`, `R0.1-R03` and an Accept regression (`R0.1-A01`) are outstanding;
+the Accept path has not been exercised under either the R0 or R0.1
+instruction set.
 
 ## Failures Observed
 
