@@ -1829,6 +1829,95 @@ excluded from the totals and is the most consequential run in this phase.
 `R1a-R02`/`R1a-R03` and `R1a-A02`/`R1a-A03` remain outstanding for the 3/3
 bar.
 
+---
+
+## H0 / H1 — task-boundary handover diagnostic
+
+Characterisation only, no solution. Question: when a task sub-agent calls a
+read tool and then `finish_task`, does Root receive the read tool's
+`FunctionResponse`, or only the value the child supplied to `finish_task`?
+
+Root → worker `mode="task"`; the worker owns both capabilities —
+`read_procedure` (FunctionTool, no confirmation) and `save_procedure`
+(FunctionTool, `require_confirmation=True`). H0 and H1 differ in exactly one
+instruction line, verified by diff; the payload, Root instruction, first two
+worker instruction lines, tool declarations and confirmation policy are
+identical. No `output_schema`, callbacks, state copying, staging, rejection
+semantics, retry logic, `ResumabilityConfig` or MCP wrappers.
+
+Fixed read payload, constant across both variants:
+
+```json
+{"procedure_id": "P-7291", "title": "Task Boundary Test",
+ "owner": "Alice Example", "control_ids": ["C-17", "C-29"],
+ "sentinel": "BOUNDARY-7291-XQZ"}
+```
+
+`save_procedure` takes every field as optional (`required: None`) so a
+dropped field arrives empty rather than pressuring the model to invent one,
+and `handover_evidence.py` records whole payloads verbatim to separate
+read/write logs.
+
+**H0-01 — default handover instruction.** Session
+`2394e190-2650-4fe8-aef5-8fb9168c9135`, 8 events, exported to
+`evidence/H0-01_events.jsonl` (byte-identical to live, sha256
+`38d5a78f168ff89e04e773264d66a1b7`). Worker instruction line 3: *"After
+successfully completing the requested operation, call finish_task."*
+
+```
+A #2 18:37:25.642 root   branch=None                CALL worker         id=call_5212592
+                          args={"request": "Read procedure P-7291."}
+B #3 18:37:39.196 worker branch=worker@call_5212592 CALL read_procedure id=call_5870791
+                          args={"procedure_id": "P-7291"}
+C #4 18:37:53.233 worker branch=worker@call_5212592 RESP read_procedure id=call_5870791
+                          resp={"procedure_id":"P-7291","title":"Task Boundary Test",
+                                "owner":"Alice Example","control_ids":["C-17","C-29"],
+                                "sentinel":"BOUNDARY-7291-XQZ"}
+D #5 18:37:53.253 worker branch=worker@call_5212592 CALL finish_task    id=call_3077579
+                          args={"result": "Successfully retrieved procedure P-7291:
+                                Title: 'Task Boundary Test', Owner: 'Alice Example',
+                                Sentinel: 'BOUNDARY-7291-XQZ',
+                                Control IDs: ['C-17', 'C-29']."}
+E #6 18:38:09.917 worker branch=worker@call_5212592 RESP finish_task -> {"result": "Task completed."}
+F #7 18:38:09.932 user   branch=None                RESP worker         id=call_5212592
+                          resp={"result": "<byte-identical to D's result string>"}
+G #8 18:38:09.962 root   branch=None                TEXT markdown list of Title/Owner/
+                          Sentinel/Control IDs
+```
+
+### Field-by-field across the boundaries
+
+| Field          | C — read response              | D — `finish_task` args             | F — received by Root      |
+| -------------- | ------------------------------ | ---------------------------------- | ------------------------- |
+| `procedure_id` | `"P-7291"` (JSON key)          | present, in prose                  | same as D                 |
+| `title`        | `"Task Boundary Test"` (key)   | present, in prose                  | same as D                 |
+| `owner`        | `"Alice Example"` (key)        | present, in prose                  | same as D                 |
+| `control_ids`  | `["C-17","C-29"]` (JSON array) | `['C-17', 'C-29']` inside a string | same as D                 |
+| `sentinel`     | `"BOUNDARY-7291-XQZ"` (key)    | present, in prose                  | same as D                 |
+| structure      | JSON object, 5 keys            | one string under `result`          | one string under `result` |
+
+### Directly demonstrated by H0-01
+
+- **Root did not receive the read tool's `FunctionResponse`.** Events #3–#6
+  all carry `branch=worker@call_5212592`. The only post-delegation events at
+  `branch=None` are #7 and #8.
+- **What Root received (F) is byte-identical to the child's `finish_task`
+  argument (D)** — the synthesized response carries the child's supplied
+  value, not the read result.
+- **All five values survived; the structure did not.** Every value including
+  the sentinel and both control ids appears verbatim at character level in D
+  and F, but five typed keys became one English sentence and
+  `control_ids` went from a JSON array to a list literal embedded in prose.
+- **The child summarised without being instructed to carry the payload.**
+  H0's instruction says nothing about payload contents; the model chose to
+  include all five values. The H0 baseline is therefore *not* "data is lost"
+  but "data crosses as unstructured prose, at the model's discretion".
+
+The write log is empty for this run, as expected — no save was requested.
+
+Caveat: n=1. The child's choice to include every value is a model decision
+that may vary between runs.
+
 ## Failures Observed
 
 _(none yet. The 503s above are provider-side, not failures of an ADK
