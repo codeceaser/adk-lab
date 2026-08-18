@@ -1,0 +1,473 @@
+{
+  "id": "31356d5f-01eb-4280-a627-d4e7404f3ee6",
+  "appName": "r1a_task_mcp_structured_outcome",
+  "userId": "user",
+  "state": {
+    "__session_metadata__": {
+      "displayName": "Write the value \"alpha\" with run marker \"R1a-R01\"."
+    }
+  },
+  "events": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Write the value \"alpha\" with run marker \"R1a-R01\"."
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-03199e68-63c4-4585-9754-a76ae4a00b31",
+      "author": "user",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": ""
+      },
+      "id": "dbe34aea-8e87-4025-814c-8252d4591cac",
+      "timestamp": 1787014389.4094105
+    },
+    {
+      "modelVersion": "gemini-3.5-flash",
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "id": "call_2243140",
+              "args": {
+                "request": "Write the value \"alpha\" with run marker \"R1a-R01\"."
+              },
+              "name": "worker"
+            },
+            "thoughtSignature": "EvkECvYEARFNMg9_HIaNbYjqNgTUemgCQfSYLn6jwtW4OMq4EYn66JZo_s6Oh6mpeLHSIxDqmOo_91Wf51A10tW04OClJm2GiuNotq0DkVGBDKZ1vERtft3rnsRhURV8FzimcuJSdR5xYCLxDIuHnPxn0V0lAT4sTH7VX-Q1HxH9P-XQYcjOjKID1vxxC4UikMMY0hajbs5GzGGB9WSx4YX2CN8l_NNQLAvUVfcxQrMJcB5R-67W-P1Fwy8cfBnA4ahA-uDzu54ytaRdpt9fsrY143wbthh47k_w9VsoxSseBJ8C3zho8FoY_W34Trs37F6moRGqUFoygPKVHG8loNL9XyTx51XKeoVCSOQfO8KiAWjf_BQTOAir4PYNTa61pVLvBpqoqhHUIC-b1HmpSOrbGYyv7859DjSjvUwk0u6wQ1PK-2DH7RaVaHG-0QdTBGJaSZwQyEnLmcFtJZN_PRj2sT-qfwxh9ZF_-8cMpuIChKklqE3D8tIaAnlJSWdPfEzZVvh6fyh8U46RGgKDh1vrpw8-F8Fa-tKim_tQXHr4sqcCfeTNonym2UHb-HJkIJBuKv8Aa4TNkt04k2fjSF-wO3df5n1T7b0UU6GcV852Wlq3ZS6m-pRrUSWMyRiC9bijFUretIZoH25HOaprX64NAqzW6j875mEsYKYvFObr0YejEgk3xB-wGUrsv0K3SDMXkdgoNZVbL3TFS55Xot4Drvd6SpZmtlTJnLPCf2VLecHoY8uMi4kXJJKhxNv7SsYoPHVQ6i8neF4YnhJI2gX3BkGJaTu2JeP0AV4phXkU-DftBk0bFw41EfyIE8RpF8FxDIF0-cv0PVOR"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "candidatesTokenCount": 31,
+        "promptTokenCount": 238,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 238
+          }
+        ],
+        "thoughtsTokenCount": 141,
+        "totalTokenCount": 410
+      },
+      "invocationId": "e-03199e68-63c4-4585-9754-a76ae4a00b31",
+      "author": "root",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1"
+      },
+      "longRunningToolIds": [],
+      "id": "5621a62f-67ea-48cc-954c-2be48c73f56e",
+      "timestamp": 1787014389.4489622
+    },
+    {
+      "modelVersion": "gemini-3.5-flash",
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "id": "call_2601830",
+              "args": {
+                "run_marker": "R1a-R01",
+                "value": "alpha"
+              },
+              "name": "write_value"
+            },
+            "thoughtSignature": "EtsCCtgCARFNMg-O4YWfKBdvTMWTImKRTBPsqIUAv7yMhMvTh1IiXQ1LdQtSYgpLKJcVbReU5aMc2ugCYliDwqmVZeGnrGbyvaN7Zrd5O3VO-zbL2TMR6IDJvImgihW0eaqL3T-tVW_IjCyfXCseEG6dc7c9tyIqBol5wv3gce2PJiNaWKXH3MMiexN5WDX6YEjMfnQjpJI5DzACPxNdM9ouH68xwsuMUFF6s6VTu4yQVGlTnZ_bOvvUoLBB3t4lj3OZPZXkqiZ6Of1jDKf2IPW1RZsHsxAJbCdlX1OneKMqz33I6JKBDzK3RX8UtivsYv3u_7NL7ieKvw01sOT_IuRFAJs2rqI9Y6nCzGpPtGqAnJxuqIQUgeuqmx73TAM0vZdZyCba3KHpu3LatuITFbQcv0qDwqjBacsvo8QqnFOWoTzMhoodpS7zS0xhhWrB2b7v5GVbBVXI5k-DBOM="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "candidatesTokenCount": 30,
+        "promptTokenCount": 647,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 647
+          }
+        ],
+        "thoughtsTokenCount": 85,
+        "totalTokenCount": 762
+      },
+      "invocationId": "e-03199e68-63c4-4585-9754-a76ae4a00b31",
+      "author": "worker",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_2243140"
+      },
+      "longRunningToolIds": [],
+      "branch": "worker@call_2243140",
+      "isolationScope": "call_2243140",
+      "id": "73d4e26d-68d0-4ea0-9358-2fff32e2f937",
+      "timestamp": 1787014393.0014405
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionResponse": {
+              "id": "call_2601830",
+              "name": "write_value",
+              "response": {
+                "error": "This tool call requires confirmation, please approve or reject."
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-03199e68-63c4-4585-9754-a76ae4a00b31",
+      "author": "worker",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {
+          "call_2601830": {
+            "hint": "Please approve or reject the tool call write_value() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
+            "confirmed": false
+          }
+        }
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_2243140"
+      },
+      "branch": "worker@call_2243140",
+      "isolationScope": "call_2243140",
+      "id": "5f393cf5-d623-46b7-920e-0e7c3729f0d5",
+      "timestamp": 1787014395.4748542
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "id": "adk-d9a71233-64b0-4605-ba7d-1a4695c3e10a",
+              "args": {
+                "originalFunctionCall": {
+                  "id": "call_2601830",
+                  "args": {
+                    "run_marker": "R1a-R01",
+                    "value": "alpha"
+                  },
+                  "name": "write_value"
+                },
+                "toolConfirmation": {
+                  "hint": "Please approve or reject the tool call write_value() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
+                  "confirmed": false
+                }
+              },
+              "name": "adk_request_confirmation"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      "invocationId": "e-03199e68-63c4-4585-9754-a76ae4a00b31",
+      "author": "worker",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_2243140"
+      },
+      "longRunningToolIds": [
+        "adk-d9a71233-64b0-4605-ba7d-1a4695c3e10a"
+      ],
+      "branch": "worker@call_2243140",
+      "isolationScope": "call_2243140",
+      "id": "f7b07c12-24de-4a63-98de-1d0c13925fd9",
+      "timestamp": 1787014395.4752412
+    },
+    {
+      "modelVersion": "gemini-3.5-flash",
+      "content": {
+        "parts": [
+          {
+            "text": "I have initiated the write operation to write the value \"alpha\" under the run marker \"R1a-R01\". Please approve the tool execution so that I can complete the task.",
+            "thoughtSignature": "EsAnCr0nARFNMg-d2AEkVEaAzTPgNdHBg2Hw3IDwdqJKXGj9YSAEieUg324DASEM5ZyaR_HHIDMosDThVhtQHzyUVooqUs92jMDA_FgQcie5mOR-3rT1XLr-1TkhsQw-FhElyk3melOyW96qNPgcsrYrQ_v4PR7r9tA24ysVgw-myUc0Gdv-lz4h20eAy2Tx11lSC9fYDs4xNjMvk0lG2os9U78zY8XhFNLr9KnsieLGSlf-VXMxue4GSoxEqTXONZdgEtJK4OmHjzsYap_A2p0F4M54y2wFW9FFffee2A3rFIy_JERLA8vtrvdf4FD0eshcWFUAkw4KGHuLpljLcpni0UOSHsVpM6yvu9kjZ3YJ5qz2OIu7fmmXU8HEa9jzKTJOlorqVKeeClyvOnlhXXg3SvQnaYLJiQ93KtPIgYUdQ88UWOct6FfKt2Nr5Jc23YoA4EunpR7O71EPlG4mm0A6aEjtTrCRsFhyTNG2TpXl5r1a1jWY-RoMEg5kNkA4jfWFDteZtUz4WTuIcO9t1Po_Ftz6WIOGZbJt2LYiVlIQ-hxTzWBZqdSDV04YFkpYx3KwlGQW7OPNuCvjqu7SAZikyclcgxKnzo4drn7Nw1wpmXS9h8FFcCTdlQF5QgJcK7GSOjwFahu15xZRwhKZoqeluIiLeNKQYR0-uw_QdUYYnK3__kQHI4I6jUaQp2gpBHX5uQSoiowcCa-VZmRNxcfvykFyHILCR4pW4lK_FugAEVOCBFN435CIY47q4H7yYd2Rl1Jh2yfqgcrh5uaQaS9xtFfODANJ0MQ9VkDrkV-OG2xl6dmVu-0qC8ZVqDRmvgBkzM5m9PuG109mx6EtbD7mkp6_uxESlnyLC-7wwCirimzYSQQ620sgt6cRAnYaE1K2a8qyWj1S6LJPaD3nfxbnOD76APkZrccVJ0hzXnbm5Pq48JWIzZVWHI-LMYNXTYfkMtBtmI3ufNo06Ma6y0qUE1hv3x16bW3B5ZVkfSkSNmLPuYo1TgMaaw5_BDzultRQ2ddZ0RUVksvsGKPrfhFAVFRIklG7rWH2zaQENcCFudR0EFCeVmU1ZCzsf2ZlO-2qtSUTdBGH32Y1s4d0iKKrUJ3Tq-8-2ZTEsZKcx0jWmzh-P-p1Jgw29iLU0ju5_cp_qkxgKe7cKouAQdxGLDCI_vyfpUMGqKB-Q-8_XcNYCkAY52JffwCUTRz4HgA1e-7HX6Z55Ki4hZjwEiDeCX3wEmk1Kcq7KFD_s9uMv67l6ibBtK8LfiSiOELSqQzNt88_uqVj7MnqNgHroULP0wB4Sx3HP--v7nXKVQ6G3IlErBb7kK84YlbepJbGUmkOyZRCZVhe22VI_DqFWNAfq_4ALiK0KoNLVyjSUMj9GnVRHPJLSFn9tW50NrTVQwju_Pva8OTXhO9nxcAstRvwD5-A8mfSZsSAu0daps__Bf1NOGFA-tOi95_JPbf-fub_d4xZHv6PUIfTooihc_285wPvKNm-ROvc9Ar5I7JnVm99agQuTgzB5uvb9DaXg5MlJ135SNyO2CjgfjQ9IyKxiJrbTP2h7dAz9cB7bPAmAlzNSl9E8J5O9fMvguCqNQ-S1PjsoPz6yCd-whOLd2Oa_0Vm9bEhS9c3s0dUPAKqcx8DHRoNaKUHDz_ejIKvOqnVs0ni_bt1M5kDO1P78RMkUiiS5FZAjg0Z0EmCxIuV-Lf2b6LAnaEU0N1IC8FHqvzoR73hoV-L9207zMK8Ylu2v2LMWs2kJFWo7TdI9heAxYfPspr2FfGCVMLAX4Dh7TqXX4rzBztfMVsxDHAXIj4GaPLBWdob1steBTKIU2XiWJE-KDjRAI0R8tDr8CVxxLrdxIGdL6FLQVV1Zzpc44LNGhxJZF0m0Z58SRQOyL5dmYOReN_7BZ2CXpyajzJia_LtPImnK2NoxVLPooe1CCJyOiZz1lYWODnpI7mbPrwQs4qK3gIJwz_GhiDb3PqOzIaQATDT6OiK4DwB8AWl5Dz_2M0OzwSN1QrIrNdvTYVeTSzJKMZ6guuWi3cbP-OV_JxMexGtKf7vQj696F4eoREQ_YrC2HoYRjGZCzsulBhAgf2m4DpUMyIo7ZLdfXUKpqtBSDjEQx3XGntmDNoZFIOxOVxsy1pKbhfIrM_RsJD5lMTv4iuVe8PkDmcve_sIcF2A5I8D5_JFvVMf00SAQZzOPbM8NiihUvkHGa70NRu9Dcu_HXUyLCCv98WLKDrcBoq9-0Pxw1sNsEQibhRy7lJbQE71P6F2wAgLOwmlVXWonE4EnKN8t86gYfpOM_EuzkalourzcG7hCq3LQ3LfHK3ewkDgOFAjFgZ14CWg847smiSgcwW7PFvWOCRcX2K5vIgIJd4PfHmXqXP-rYzSIyYPTc21SeWSeTqlUx24zMh6W0iA3Q55QcFmpPzAND7IAmFftkUqLytW4u7jsY83LdQfS_wCn-dvsa1JsZkp5KCVCsHz9aLz4Sp7WkhlxnoOVYKUQiNyVYIcD4kAm7ETjm8NXm-0EwyYw7KRi5N1tIDnYmVUJHjVdBUfpQkyCaJ6QQu-0cJ_goNhU8JjWCExPEl6mAEOl3zdbFNWtxj8DKjyuhH2iZWikvbmfV3mu70jHAe3K3PsQPe5_-k1f3jivl2NaEL9yv_TIMuzWu0PzyNTcyZTUtEXRshPBxXRBwqITFtYgcWhJrvEj5_Hlma3ppRssv1Luml_NQsLHEKhhbLh0mf7EpDM643wu9Lolr0HejtxKBnXPCNrRBr_-kGz292lTowaQeqCaJZReMumAmXgDgHoC7q7nnZP2cTOwiBT0ztIVIw8JHAkMg8W7eIvDvEinUSJoSio6qyTui2lasflHq-i8-fE2qxFJMjyQ2Y9KA3B35r9RC2OefSZV36fWX14LlfC59KKtQBgf5WKgz6llng8qBUbKIDAdsvyLxkopmvkTd6FE-fUUHITYwD3b-Zjsp7QR0wzT8jMu6VfWYO2S3ybxb1lHGve59Mm3O4LwMC1TNY5SG24piXhXnPKC8lr4INMlPxe93UssfECfu1NULOITs9c4OJ6DXt828M6SU2kksHwXC64-Nin9paxbHocHfN164GJv19xTDp3VNcYtNi9Auz8S5luKi4b0hOIT8W4PpYzAYGQ0Ry1iYTVCsRsK9QNA1qEL8ka2SBLzgFlzksayCWJZNV9b8ch-Zz7SUG5-CsfKMqU1ZTQ7SrevC5XQ5kgHV91h0bx9TcR0H0u4eFDUnfBZL9FHQq4LwzrWSi2oAr_EXuMDhXQ7LfuPolBfUEHb0ms3T_jXNWr66Y74lJle0FG11NGdF1I5xAOiL74V7X-cpjshLn3GbBOuSexcHyNWqQ4WIIiPopC4L4R4eLbDuChDFTP90L3AIMX1miFsNJSa5hD282cY2F-UKGFqtT-HY9G4zWMjq2SocHcmtzySC2bcQ5NOkHq2kOcBJtWsIjY9etegi8n9cl0CsiPtRbX2EFzhan7f6Q6Ig007JgdOMzMRO1ucOi5Z8d6DfMhwWcOpleQtUm-4K-JF8YcjqLK5nIu7yNQwV0ZPvxsacgw6lb-OH2dzRh9KeBOJMItqeDUrwRvUzWMfm29GT7AUJxHamz6X-Szqs4_K--kQByp2vHShsWqXRn0WPAAYDhgKquG6NEMAb5QXsTEoAQAQM_UMkFZ2mShlI0ayw-w2LjOCoUqvZqypWHdQ1fyRWg3z-Bno4DsOp1H_GZ7ENcwKW1LyPw0C4_3RxipS_RYgh4AIUHP1Hv2uLL2fagNDGqwIPCodp5NN67Un01D-_aWSKs1F7cLKV6QEgVDnk_THpGCnryBrJyKD6zh9XBgd_cbEzZx6G4ZR-x22fboELvMPo1Lif7Ot74vw1Gr7TirS7eWRty4NXwJrOUi3-keWd7lczYLYqnUxGXfJTAGJWnMdzPQiIlZTh2yZXHWF-0zkFsq3Gc6E8034tXxseVpbZ4ifRb-iY2kIUaA0IyRRAlLfChBj541gflAuQr1wV0rhAxsTgFlH3WKHIqOaCWOFPwUvv4GCGrotGIwxJmwI_nNU0JJDTxO00-rV6wvT64kn7IgWRq_WxZQlsIDdNOivihzM9vSyyukWnjjltY4aihV4_D6SXGd_jtSEEghS6_1YLyrS5KL7KliAZVcONyLgNbnJXUC4Zn_C3Sd_b0OL8dNQDX_CE_nscUK4M_0eTYlx8WC_UgJ_JRvhIbBDq1PgBTHGTVqBNkA2IVZToVcmNKgnhVRGXavFtK9H2fVmD8yCvMUtKkXv500pyfjmkcRRKSKlg_oCCCQQVhcop0acGbwTAVwrRXXW5k79P2ENghHwM1KyMOizfXvRmfWeuLrUKIoqqP5goFSkSuAuVOQ4cQe3Rsm8LuAtBt1gLlG0-fk1dowa6_IXZtFxI_6BPAoWnzqPgG01rKzGYe3tJMc86c0tpJPT_zaFSWWJQW9JMfyrzmjVIpofrD0_8tox5IGozbAc_-CS6Bknp2FgoN4MUKaXN3Pmewc6tSMrU61K6CtPLL5zlwUESlL2A65HWC4lUY1L5dipBn5-jXotqc103om1WJIPXM7K6C_DEhJEpWM4Q0I-njIPztWgY-IwQn0tNuH53Nq-Tj6vt7mqG5aC9RJUiXl-pChDKMBodDkF_w1nACiXedjtIdfDLhJrVBA89HjBFf9sgRr3q7otyuPy-jBquxboJeg1vkTkG0oB3MYFJDY7G4Gm7KEcOkwMOQ0FaQ2OZzU1CmtUjbbUhyinSTfI92mTLZIX-XMzcrAjpv2N0pmZL6Ip3lEGIhJcRbMvpfsU7AwptPRB3cTUCRhOK6-MiMvalfNh6mIjryxXkGosS4chOfH-XLx2z10nyjoG4tGQJ3KfXcusqkr4y9g8muBWGH50aLO9Hp5Gkf2L8rjwfmq9ennGnAsg1_cvC75e1ItKB4d3J5GdYrwPscV8eAycGZooKkjHGDtKi2YtrBv-huUvaO4miM5qvUOl3jsAzeXsZye1oiKvUBWdZStEVCEkxCfYtBIP3jJJih1KJRbTt1V6EHz2oGQnWXFs0up4TwYcgCpi5tVDOdh_ONQ43wF6MD1OJu5ULksX6hL39aFu4TdGymoRHlp9hIxrUZG3Fm7yhNbitxKVAIGxMEzpCSYNpZm301Z72-No10HwbjuYsipK-e2zAdz-_PhRgeGxn4P2rUjHuVGR5Lrle5Ll9UycKIfPAAACUbUTVJcZqHkYh2bWnPA3Rlirb20ZHwlrFg51EyJee7fVk1Ww0CNBfwOEWtfJ92M3tobGz7bdAHpAF0LRtLz5GkB1orCXcOmEYXinlkPL7P_554mInlo8SNR2CsOg338F0uYCBgP1HTPhqDDLcYVuQ79UcpHWy_eusNcR3Mp4Ej_W7fq4g-79M-kq0NW4QBfZXPORkjHbb3dKZQzWvqcC4XwIolmqDgrIDa1o0U0d5Kn5VfRVCjfT3rRKqj1bSjjy-WV_duNHSsjZm6DxpCLJ1dJx74wBFwuOO7mN1Hn7ZSH_6LO9zH146dfwrgkQ7Ctl9BY1SoaRiJa8c9werGkl6uWaiOM-afqTLcVR9w8Uzrrjd46MOaRJOzJrIdnewM9XG-y2SJgv2wpdjXVSwsJVNzcUpSDg_a2twCSSG_7nMc4k6HzCu0BsGlzbTg16KQjSCH8QpGH-1PiNWL-IDsu1qV1ReKqTvu7Hy338ftK-Vyyf0tIoimTBFcBcPZ87frFu4YK1Km_hYVd5J3UmHGNnWG_c0vy1muPMq1IGP2Q3BJwnugDOkkMCAOOISFDfIxwv1cIgLOedfwORorztsU-fLB0OFm99l-sEB-QfHgJ3Ffoi_mkHUmLIE-bjvY5RZmL2auZY9lKtznYDbDZa1njEYfKdk7-g_gMjHt157SPdL5hgTdOEJDeuL97e3WRuYA8OGF-o9j-hTfPY00KDzr3IdZNFkJUe5BZsFLmuSA_EzJKHWBG-zmtf6UhTisaIjw2jwU7p66ad6h-7LswJoNm8x4OEnJBxctPHOJE1qwEYKxOYLDU-G4367zRIfJDywPWiEmVoVeF0IURxrXWCIWTXkwppoXPeNoCne8OBnUFPgx7GzxUtX_NkK4SpEw70mX2EaSKC3MIuN0L3L9dDC7hN5BmGO7f9s3SWdjx8hpqeKXnORsm-e-0kU9aZU1jc57LkoDiZjoPcrN-6ZB0-R80k3Txvfbj1I-c4escPaA2Z3bCIe0hxYrFI4zpAmS3SmGc1Sg4neec7c-GPJq5ZTQOAY2PavVHXqwBH_OuSJfTrP-7LKVj7jjdujHD0q9-OlG47ZWSutbrAyVvryQizfHWP09NBZBdsHufTZHFs6fF5-cske9SU8lLJKQX8bSUjXTl9DXw2zFV-P8FIeJGTQzFZplLB1dOUEeIMRYLyH6y92_CclGtAeGX1glmgZ0T5ftRLC3JKcu6JypR_9SOH9Ycmjv-nKT3VS2FSkySXqzvjclGcM8Ff2JaTX65ib9Lai0FjBlheW7eCLDK-WQCzKkRfb3MvfJDhwJcpsWJTGbgt3YGaidxdszg2mIntS_WJXrMCea49PStfECzNto-cbHPV3cWZpkWwcabY1iW7ONI172A00pKfh8Mv06GpvqHifhre9D3CC3QfWhKNz3NdTRnnL9BsXbpOf5uHVuz0J9BYpiPUJ1iP4Ra0BJ36bubX8YMm8S38Non-G3tmUkEUrZXsVOmRW2JV2hExn_NbyPwOojwa0jggz-doCG9KPi4yA=="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "candidatesTokenCount": 39,
+        "promptTokenCount": 786,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 786
+          }
+        ],
+        "thoughtsTokenCount": 1085,
+        "totalTokenCount": 1910
+      },
+      "invocationId": "e-03199e68-63c4-4585-9754-a76ae4a00b31",
+      "author": "worker",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_2243140"
+      },
+      "branch": "worker@call_2243140",
+      "isolationScope": "call_2243140",
+      "id": "72c539d1-48c5-43c5-8cbc-0d872edd1f88",
+      "timestamp": 1787014395.5063467
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionResponse": {
+              "id": "adk-d9a71233-64b0-4605-ba7d-1a4695c3e10a",
+              "name": "adk_request_confirmation",
+              "response": {
+                "confirmed": false,
+                "payload": {
+                  "run_marker": "R1a-R01",
+                  "value": "alpha"
+                }
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-03199e68-63c4-4585-9754-a76ae4a00b31",
+      "author": "user",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": ""
+      },
+      "branch": "worker@call_2243140",
+      "isolationScope": "call_2243140",
+      "id": "a26055a7-d9a5-4aa2-ba2e-163c5a6fb923",
+      "timestamp": 1787014444.6700788
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionResponse": {
+              "id": "call_2601830",
+              "name": "write_value",
+              "response": {
+                "error": "This tool call is rejected."
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-03199e68-63c4-4585-9754-a76ae4a00b31",
+      "author": "worker",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_2243140"
+      },
+      "branch": "worker@call_2243140",
+      "isolationScope": "call_2243140",
+      "id": "69a35c97-ec09-4ed1-8872-c016d477e48d",
+      "timestamp": 1787014444.685942
+    },
+    {
+      "modelVersion": "gemini-3.5-flash",
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "id": "call_1699944",
+              "args": {
+                "action_id": "R1a-R01",
+                "status": "CANCELLED",
+                "message": "The write operation was rejected."
+              },
+              "name": "finish_task"
+            },
+            "thoughtSignature": "EvoFCvcFARFNMg8Wn1ADeEjTlcktQCmM2SJVakmh_6iKpYXNQUpoXwIAPk56QDekpy19IOq_VocUR0RVqUHZDlSy0Jte0kl3nb59bAj76S4v_amvWPHA8bCILSm0q8e22rGg5m9c8SLYxTnQuT_VJYwTLuy5dwoUYpqcAAFB9QS4hh6uu_XqBKhadHyjZQBfBWnBzH7P8zn0VFdDh51ywWmo4sV6OqVDsv0hguKdEJuumOc_0xolmETt84eTem6U7TPG3MrVcx1rWYkHIwVohZfZ3UOTUqpALGHNio19KHOS8knwVIaDzW1_EzhqaJbCamSuy0qErnZYUKBtcsBY9sOtyynLSc5LTRIUz3D69r7yvrHj1XiuG4Fkk6fyNM__Fcj3dDzifuY6nQI9sIx6hge6vacnqH-s8bCFPoHoFyNEXogtVle8P7uS0VCmGIpzMreNFmDA7qhX-cZNBmJKks0Iq7FiYPxEclsr7pXRLNFLffPLcvJyKj8P0QDUf4Ft0GFS0VfvFPLGkj9Ps6XaKqSU_cCk8bmKuKB-KuDOL9UQjcXTUylDHVcAQWMJwII-9gs5EbJfP5OoWxCwOqpVtiNadhDgDKZFjM0dgm_nfBOoWIQp5egPQ5fPmDTICrXasoh7Gx2WD89Udw4aI7-Rdx6luc_HtClgjZjjgW1M-6fxTDlfXVp2199_Rm6doN4UfiixgvuY6f8oKJWo_S5sa3ug5uPfTvER1Iqp2wgMLTCgTQz4MRVlAHs3kBBGmbjycBksgPxlbo_JHhd-vz2PktOXbm7mkGyNRfR98kVNlUCTjij1v0nwUT-_0-ga5i4QbZqNZzzGmnWltej05KkLQAOZjyh-Wm8IpT2Z_NF4pdLTRPuHqd4bh5-tcCX9s2dHPVsslFDvsiWjIyzlyCYFdW9zPjQgDqqxqwdZtnx-NsTHCwh2qD35rbVB1BIc5wUxq9XXHZSGh1HjuMPma3MecSdMOHebYSVuJhtDYo31ibgxfhj6LC8yhTQPAHd9"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "candidatesTokenCount": 42,
+        "promptTokenCount": 781,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 781
+          }
+        ],
+        "thoughtsTokenCount": 163,
+        "totalTokenCount": 986
+      },
+      "invocationId": "e-03199e68-63c4-4585-9754-a76ae4a00b31",
+      "author": "worker",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_2243140"
+      },
+      "longRunningToolIds": [],
+      "branch": "worker@call_2243140",
+      "isolationScope": "call_2243140",
+      "id": "b61292ef-c982-4242-bc7c-20d4a569552b",
+      "timestamp": 1787014444.7029326
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionResponse": {
+              "id": "call_1699944",
+              "name": "finish_task",
+              "response": {
+                "result": "Task completed."
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-03199e68-63c4-4585-9754-a76ae4a00b31",
+      "author": "worker",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "output": {
+        "action_id": "R1a-R01",
+        "status": "CANCELLED",
+        "message": "The write operation was rejected."
+      },
+      "nodeInfo": {
+        "path": "root@1/worker@call_2243140",
+        "outputFor": [
+          "root@1/worker@call_2243140"
+        ]
+      },
+      "branch": "worker@call_2243140",
+      "isolationScope": "call_2243140",
+      "id": "d2c6385a-a814-445b-be57-b9250769a657",
+      "timestamp": 1787014447.4227154
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "functionResponse": {
+              "id": "call_2243140",
+              "name": "worker",
+              "response": {
+                "action_id": "R1a-R01",
+                "status": "CANCELLED",
+                "message": "The write operation was rejected."
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-03199e68-63c4-4585-9754-a76ae4a00b31",
+      "author": "user",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1"
+      },
+      "id": "c523badd-c8ef-4f7e-a28c-56c4c32f6dfb",
+      "timestamp": 1787014447.433074
+    },
+    {
+      "modelVersion": "gemini-3.5-flash",
+      "content": {
+        "parts": [
+          {
+            "text": "The write operation with run marker \"R1a-R01\" was cancelled.",
+            "thoughtSignature": "EqUECqIEARFNMg_8xeqEzDjqUTFqdtfoc0gwTSeRTpy7drMN45C-87GcuKIUymn6AV_K_KTjP_TwtXP1K2TaeU0Ir-Whz95xrpGpVY84Vyld8VvdjXx-wEcpdW11bV3BkdtSxmmslBS-GnofSNu-P61Xl7XOQk5XIojTVfDZljF22NpVy6-vgWSqFA1ZSvuqNkK8oO9jA1DZfvlpHJFZRmFizZqCc5sstrkv_NQHEl2DxUpUmKnmQKpURKZtjQUhFNUwlbVK7YL94je35QEZTnKE74EK77-pUlb5TCrtTTOt9ezNKkVzpOJXTMkyF5G-d1XUw1iqyh2TKovggSAHwCXoSnPFHl5CayL59CDjT9nSc2DZ5GH_kh6ZR6Phudsd9VPAcFmxgKzfI_ftqhD2WflBuz5GiE5t8nOk-Fnpy4V412HYK9lr0BfEo6K8SnDHSuDZB0VzZS6bANovjUqxaFtufRofbIkLGG4Ryxv08rYj25jmgekGLGE9bIiz7JnhvNScg2S3C69U5yGC3AgnU1ePu8zllPIoJElFHMwTxDK22Ap6bQmQ5RSGYTL_iaQ8_jzFZG6AiJBxQoZnfnNLEMMPoIn6sus-1jPOINH3RkUiBFIYXpSsuS1ZyS0NlNnhloQ-xghMWyz1JPQCYoeopzMpTbFYCiCGEA3mLh2ZyB3WRqIfByTrKt9CgI3yDSACyN_reodOLeYAlv6rhbfi6e1ecWKPs-_I"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "candidatesTokenCount": 18,
+        "promptTokenCount": 448,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 448
+          }
+        ],
+        "thoughtsTokenCount": 92,
+        "totalTokenCount": 558
+      },
+      "invocationId": "e-03199e68-63c4-4585-9754-a76ae4a00b31",
+      "author": "root",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "root@1"
+      },
+      "id": "7f93c1c0-a6b6-4ddc-ba81-8284f487f059",
+      "timestamp": 1787014447.4525714
+    }
+  ],
+  "lastUpdateTime": 1787014447.4525714
+}

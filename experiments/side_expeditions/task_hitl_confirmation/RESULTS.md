@@ -40,6 +40,7 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | R0.1    | R0.1-A02 (abandoned)         | none — not clicked      | abandoned at pending confirmation          |                                  0 | NOT A RUN (same session as R0.1-R03)     |
 | R0.1    | R0.1-A02b                    | Accept                  | Root responded with success                |       0 before (derived) / 1 after | PASS (no regression)                     |
 | R0.1    | R0.1-A03                     | Accept                  | Root responded with success                |       0 before (derived) / 1 after | PASS (no regression)                     |
+| R1a     | R1a-R01                      | Reject                  | Root cancellation; typed outcome satisfied |                 0 before / 0 after | PASS (contract satisfied)                |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -1644,6 +1645,98 @@ namely that nothing executed while the confirmation was pending.
 The `finish_task` argument was the literal string `"cancelled"` in all three
 Reject runs. Three samples, still a model-chosen string rather than a
 contract.
+
+---
+
+## R1a — structured task outcome contract
+
+R1a copies R0.1 and changes **only the worker's `output_schema`**. Comparing
+25 model-visible and wiring fields, two differ: `worker.output_schema`, and
+`finish_task.schema` as its direct consequence. Both instructions are
+byte-identical to R0.1, the MCP server command and args are identical, and
+callbacks, `output_key`, `planner` and Root's `output_schema` are unset on
+both agents. No lifecycle state store, retry guard, `ResumabilityConfig` or
+MCP/backend idempotency change.
+
+```python
+class TaskStatus(str, Enum):
+    SUCCEEDED = "SUCCEEDED"; CANCELLED = "CANCELLED"; FAILED = "FAILED"
+
+class TaskOutcome(BaseModel):
+    action_id: str        # "In this lab it is the run marker supplied with the request."
+    status: TaskStatus
+    message: str | None = None
+```
+
+ADK derives the `finish_task` declaration from the task agent's
+`output_schema` (`agents/llm/task/_finish_task_tool.py`), so `finish_task`
+moved from `_DefaultTaskOutput` `{result: string}` to `TaskOutcome`;
+`wrapper_key` is `None` in both. Nothing in the variant calls or wraps
+`finish_task`.
+
+The `action_id` = run-marker mapping is stated in the **pydantic field
+description**, not in either instruction — deliberately, so the contract
+carries it. `run_marker` as `action_id` is a lab convenience and not a claim
+about production ID generation.
+
+**R1a-R01 (Reject) — PASS, contract satisfied.** Session
+`31356d5f-01eb-4280-a627-d4e7404f3ee6`, 12 events, exported to
+`evidence/R1a-R01_events.jsonl`, byte-identical to the live session (sha256
+`c8a3ad66a30e30634f6d0f779a653aac`). Pre-click count measured live.
+
+```
+#2  00:53:09.448  root    branch=None                 MODEL      CALL worker       id=call_2243140
+#3  00:53:13.001  worker  branch=worker@call_2243140  MODEL      CALL write_value  id=call_2601830
+#5  00:53:15.475  worker  branch=worker@call_2243140  framework  CALL adk_request_confirmation
+                             id=adk-d9a71233-64b0-4605-ba7d-1a4695c3e10a -> call_2601830
+#6  00:53:15.506  worker  branch=worker@call_2243140  MODEL      TEXT "I have initiated the write ..."
+      ---- MCP execution count for R1a-R01: 0 (measured live, pre-click) ----
+#7  00:54:04.670  user    branch=worker@call_2243140  framework  RESP adk_request_confirmation
+                             -> {"confirmed": false, "payload": {...}}
+#8  00:54:04.685  worker  branch=worker@call_2243140  framework  RESP write_value  id=call_2601830
+                             -> {"error": "This tool call is rejected."}
+#9  00:54:04.702  worker  branch=worker@call_2243140  MODEL      CALL finish_task  id=call_1699944
+                             args={"action_id": "R1a-R01", "status": "CANCELLED",
+                                   "message": "The write operation was rejected."}
+#10 00:54:07.422  worker  branch=worker@call_2243140  framework  RESP finish_task -> "Task completed."
+#11 00:54:07.433  user    branch=None                 framework  RESP worker id=call_2243140
+                             -> {"action_id": "R1a-R01", "status": "CANCELLED",
+                                 "message": "The write operation was rejected."}
+#12 00:54:07.452  root    branch=None                 MODEL      TEXT "The write operation with run
+                             marker "R1a-R01" was cancelled."
+      ---- MCP execution count for R1a-R01: 0 ----
+```
+
+| Contract check                    | Result                                   |
+| --------------------------------- | ---------------------------------------- |
+| `action_id` equals the run marker | PASS (`R1a-R01`)                         |
+| `status` is `CANCELLED`           | PASS                                     |
+| `message` populated               | `"The write operation was rejected."`    |
+| keys present                      | exactly `action_id`, `message`, `status` |
+
+Directly demonstrated by this run:
+
+- **The typed contract is satisfiable in the Reject path.** `finish_task`
+  carried a structured `TaskOutcome` instead of R0.1's model-chosen string
+  `{"result": "cancelled"}`, and the object that reached Root at #11 is
+  machine-consumable without string matching.
+- **`action_id` was populated correctly from the field description alone.**
+  That mapping appears in neither instruction, so the schema carried it.
+- **`$defs`/`$ref` in `parametersJsonSchema` is accepted by this
+  deployment.** `TaskStatus` being an enum put a `$ref` in the `finish_task`
+  declaration; the worker made two successful model calls and produced a
+  valid enum member. This was the one open risk recorded at scaffold time and
+  it is now closed — relevant beyond the lab, since production schemas carry
+  nested types.
+- **No regression against R0.1.** One delegation, one `write_value` call, one
+  confirmation, MCP executions 0, two branch values, Root ending with a
+  cancellation and no re-delegation.
+
+Caveat: n=1, and the Accept path is unrun under this contract — `status`
+returning `SUCCEEDED`, and `action_id` staying correct when the tool actually
+executes, are untested. The worker also narrated at #6 while the confirmation
+was pending, the turn in which T2 twice issued a second `write_value` call;
+it behaved here, in one run.
 
 ## Failures Observed
 
