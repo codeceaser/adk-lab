@@ -41,6 +41,8 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | R0.1    | R0.1-A02b                    | Accept                  | Root responded with success                |       0 before (derived) / 1 after | PASS (no regression)                     |
 | R0.1    | R0.1-A03                     | Accept                  | Root responded with success                |       0 before (derived) / 1 after | PASS (no regression)                     |
 | R1a     | R1a-R01                      | Reject                  | Root cancellation; typed outcome satisfied |                 0 before / 0 after | PASS (contract satisfied)                |
+| R1a     | R1a-A01                      | Accept                  | tool executed; 503 before `finish_task`    |                 0 before / 1 after | PARTIAL — executed, no outcome           |
+| R1a     | R1a-A01-a                    | Accept (1 of 2 pending) | Root success; typed outcome satisfied      |                 0 before / 1 after | PASS (contract satisfied)                |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -1732,11 +1734,100 @@ Directly demonstrated by this run:
   confirmation, MCP executions 0, two branch values, Root ending with a
   cancellation and no re-delegation.
 
-Caveat: n=1, and the Accept path is unrun under this contract — `status`
-returning `SUCCEEDED`, and `action_id` staying correct when the tool actually
-executes, are untested. The worker also narrated at #6 while the confirmation
-was pending, the turn in which T2 twice issued a second `write_value` call;
-it behaved here, in one run.
+Caveat at time of writing: n=1, and the Accept path unrun. Both addressed
+below.
+
+**R1a-A01 — PARTIAL: the tool executed and no outcome was ever produced.**
+Session `fddf8100-c7d8-447b-9bd2-c5c398ef9e3c`, 9 events, frozen and exported
+to `evidence/R1a-A01-PARTIAL-503-before-finish_task_events.jsonl`
+(byte-identical to live, sha256 `866d64f44bdb8d75e972876303f84c97`).
+Pre-click count measured live at 0.
+
+```
+#7  01:54:28.917  user    framework  RESP adk_request_confirmation -> {"confirmed": true, ...}
+#8  01:54:28.940  worker  framework  RESP write_value  id=call_2449828
+                             -> {"content":[{"type":"text","text":"{... MCP_TOOL_EXECUTED ... R1a-A01 ...}"}]}
+#9  01:54:49.398  worker  framework  ERROR ServerError: 503 UNAVAILABLE
+                             branch=worker@call_3576649
+```
+
+```
+MCP executions for R1a-A01 : 1      <- the side effect happened
+finish_task calls          : 0
+RESP worker to Root        : 0
+root text events           : 0
+```
+
+**This is the most production-relevant failure recorded in this
+investigation.** The write happened exactly once, and the structured outcome
+meant to record it never existed. Root was never told anything. The session
+ends with a completed side effect and no outcome.
+
+`TaskOutcome` does not cover this, and cannot: it constrains `finish_task`
+*when the model calls it*, and cannot make the model reach that call. The 503
+landed in the model turn between the tool result and `finish_task`. This is
+the boundary of what a typed output contract achieves, not a defect in the
+scaffold.
+
+Classification rationale: `INVALID` does not fit — the path was entered and
+the tool executed. `PASS` plainly does not. `PARTIAL` fits the definition
+already in use (every ADK-owned checkpoint that ran, ran correctly; the stop
+was a provider 503), with the distinguishing note that **the side effect
+completed with no recorded outcome**. Compare T1-A02 attempt 2, also PARTIAL,
+where the 503 landed *after* the task returned to Root — there the outcome
+existed. Recorded as PARTIAL and **excluded from R1a's Accept total**.
+
+**R1a-A01-a (Accept) — PASS, contract satisfied.** Re-run in a fresh session.
+`0ad829dd-6783-4be7-945e-08093c92f351`, 15 events, exported to
+`evidence/R1a-A01-a_events.jsonl` (byte-identical to live, sha256
+`2c5601de61283d43060836cd3fe5fd6a`). Pre-click count measured live at 0.
+
+Two confirmations were pending when the operator was shown the state — the
+concurrent-pending behaviour, here for the first time outside T2. The
+operator was advised to accept one and leave the other, and did so.
+
+```
+#3  03:29:31.560  worker  MODEL      CALL write_value  id=call_3115645
+#5  03:29:38.521  worker  framework  CALL adk_request_confirmation adk-3dfe4a95-... -> call_3115645
+#6  03:29:38.556  worker  MODEL      CALL write_value  id=call_3166214   <- 35ms later, nothing rejected
+#8  03:29:42.653  worker  framework  CALL adk_request_confirmation adk-0eb97b0a-... -> call_3166214
+      ---- MCP execution count for R1a-A01-a: 0, TWO confirmations pending ----
+#10 03:30:46.564  user    framework  RESP adk_request_confirmation adk-3dfe4a95-... -> {"confirmed": true}
+#11 03:30:46.593  worker  framework  RESP write_value  id=call_3115645  [REAL RESULT]
+#12 03:30:46.614  worker  MODEL      CALL finish_task
+                             args={"status": "SUCCEEDED", "action_id": "R1a-A01-a"}
+#13 03:30:49.633  worker  framework  RESP finish_task -> "Task completed."
+#14 03:30:49.654  user    framework  RESP worker id=call_2356012
+                             -> {"action_id": "R1a-A01-a", "status": "SUCCEEDED"}
+#15 03:30:49.685  root    MODEL      TEXT "The value "alpha" has been successfully written ..."
+      ---- MCP execution count for R1a-A01-a: 1 ----
+```
+
+| Check                             | Result                                          |
+| --------------------------------- | ----------------------------------------------- |
+| `status` is `SUCCEEDED`           | PASS — first evidence of the second enum member |
+| `action_id` equals the run marker | PASS (`R1a-A01-a`)                              |
+| MCP executions                    | 1, on the accepted call only                    |
+| `message`                         | omitted — valid, the field is optional          |
+
+The `action_id` result is the load-bearing one: the tool response at #11
+contains `MCP_TOOL_EXECUTED ... run_marker=R1a-A01-a`, a plausible source to
+lift a wrong value from, and the model still produced the correct marker from
+the pydantic field description.
+
+Call accounting under concurrent confirmations — the same independence T2-A03
+showed: `call_3115645` executed, `call_3166214` stayed a pending stub, one
+confirmation response, one execution, and the **task completed with a
+confirmation still outstanding**.
+
+**Concurrent pending confirmations are not a T2 quirk.** Third occurrence
+(T2-A03, T2-R02, R1a-A01-a) and the first outside T2. The structured contract
+does not touch it — `TaskOutcome` constrains `finish_task`, not tool calling.
+
+**R1a status: 1/1 Reject PASS, 1/1 Accept PASS, plus one PARTIAL** that is
+excluded from the totals and is the most consequential run in this phase.
+`R1a-R02`/`R1a-R03` and `R1a-A02`/`R1a-A03` remain outstanding for the 3/3
+bar.
 
 ## Failures Observed
 
