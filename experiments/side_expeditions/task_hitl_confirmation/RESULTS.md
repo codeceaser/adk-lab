@@ -43,6 +43,9 @@ Code under test: commit `acb44e8` (see `evidence/test_start_revision.txt`).
 | R1a     | R1a-R01                      | Reject                  | Root cancellation; typed outcome satisfied |                 0 before / 0 after | PASS (contract satisfied)                |
 | R1a     | R1a-A01                      | Accept                  | tool executed; 503 before `finish_task`    |                 0 before / 1 after | PARTIAL — executed, no outcome           |
 | R1a     | R1a-A01-a                    | Accept (1 of 2 pending) | Root success; typed outcome satisfied      |                 0 before / 1 after | PASS (contract satisfied)                |
+| H0      | H0-01                        | n/a (read only)         | G — Root text; values in prose             |                 reads 1 / writes 0 | CHARACTERISATION (no pass/fail)          |
+| H1      | H1-01                        | n/a (read only)         | G — Root text; payload as JSON             |                 reads 1 / writes 0 | CHARACTERISATION (no pass/fail)          |
+| H1      | H1-01 follow-up (save)       | Accept                  | K then approved; write executed            |                 reads 0 / writes 1 | CHARACTERISATION (no pass/fail)          |
 
 Discarded sessions (not runs): `d06e8ea5-2c11-41b9-adad-e2ee04cd551c`
 (c0 app) re-used the marker `C0-A01`; abandoned at the confirmation request
@@ -1917,6 +1920,121 @@ The write log is empty for this run, as expected — no save was requested.
 
 Caveat: n=1. The child's choice to include every value is a model decision
 that may vary between runs.
+
+**H1-01 — explicit payload handover, plus the reuse follow-up.** Session
+`6a6b5503-eddf-46f3-b85c-051c5212c80e`, 19 events, exported to
+`evidence/H1-01_events.jsonl` (byte-identical to live, sha256
+`125e52de51da04ad5619d336d1b0e279`). Worker instruction line 3: *"After a
+read operation succeeds, call finish_task and include the complete
+information returned by the read tool. Preserve every returned field and
+value; do not merely summarize that the read succeeded."*
+
+Read phase, checkpoints A-G:
+
+```
+A #2  root   branch=None            CALL worker         id=call_7058
+B #3  worker branch=worker@call_7058 CALL read_procedure id=call_2356292
+C #4  worker branch=worker@call_7058 RESP read_procedure -> full 5-field JSON object
+D #5  worker branch=worker@call_7058 CALL finish_task    id=call_2250047
+        args={"result": "{\"control_ids\": [\"C-17\", \"C-29\"], \"owner\": \"Alice Example\",
+                          \"procedure_id\": \"P-7291\", \"sentinel\": \"BOUNDARY-7291-XQZ\",
+                          \"title\": \"Task Boundary Test\"}"}
+E #6  worker RESP finish_task -> {"result": "Task completed."}
+F #7  user   branch=None            RESP worker id=call_7058
+        resp byte-identical to D's result string
+G #8  root   branch=None            TEXT markdown list, all five fields
+```
+
+### H0 vs H1 at the finish_task boundary
+
+|                         | H0-01                              | H1-01                           |
+| ----------------------- | ---------------------------------- | ------------------------------- |
+| D's `result`            | English prose                      | JSON text                       |
+| all five values present | yes                                | yes                             |
+| `control_ids` form      | Python list literal inside prose   | JSON array inside a JSON string |
+| keys preserved          | no — values only, in sentence form | yes, all five                   |
+| machine-parseable       | no                                 | yes                             |
+
+Verified programmatically for H1: `F == D` byte-identical; Root's payload
+parses as JSON; key sets identical to the read response; **deep-equal**; and
+`control_ids` recovers as a `list`, not a string.
+
+The `finish_task` declaration remained the default `{result: string}` — the
+model satisfied it by *stringifying* JSON rather than attempting an object,
+so no validation failure occurred. That was one of three anticipated
+outcomes; it did not happen.
+
+### Reuse follow-up, checkpoints H-K
+
+User prompt, verbatim, with **no field restated**: *"Now save exactly the
+procedure information that was just retrieved."*
+
+```
+H #10 root   branch=None                CALL worker id=call_5007646
+I #10 args={"request": "Save the following procedure record:\n{ ...5 fields as JSON... }"}
+J #11 worker branch=worker@call_5007646 CALL save_procedure id=call_4263983
+        args={"control_ids":["C-17","C-29"],"procedure_id":"P-7291",
+              "title":"Task Boundary Test","owner":"Alice Example",
+              "sentinel":"BOUNDARY-7291-XQZ"}
+K #13 worker CALL adk_request_confirmation id=adk-2aeae296-b09b-4731-86af-1ac62713b591
+        originalFunctionCall.args identical to J
+```
+
+Frozen at 13 events with the confirmation pending (requests 1, responses 0,
+write log empty) before being approved. Fidelity at every hop, verified
+deep-equal against the original read payload:
+
+```
+read == Root delegation payload : True
+read == worker save args        : True
+read == confirmation args       : True
+sentinel intact everywhere      : True
+control_ids list everywhere     : True
+```
+
+### After approval — the write actually executed
+
+```
+#14 18:53:05.273  user   RESP adk_request_confirmation -> {"confirmed": true, ...}
+#15 18:53:05.291  worker RESP save_procedure id=call_4263983
+                    -> {"status":"ok","received":{...all five fields...}}
+#16 18:53:05.309  worker CALL finish_task -> "Successfully saved the procedure record
+                                              with ID P-7291. Status: ok."
+#18 18:53:08.621  user   RESP worker id=call_5007646  (same string)
+#19 18:53:08.643  root   TEXT "The procedure record for P-7291 ... successfully saved."
+```
+
+Comparing the two **tool bodies** via the independent handover logs — one
+layer below the FunctionCall:
+
+```
+read body payload  == write body payload : True (deep-equal)
+key sets identical                       : True
+control_ids type   read=list write=list
+no empty/defaulted fields in the write   : True
+```
+
+Note the save's own `finish_task` (#16) reverted to a prose summary. H1's
+instruction is scoped to read operations ("After a read operation
+succeeds…"), so this is consistent with the instruction rather than a
+contradiction of it.
+
+### Required conclusion — statements 1-5
+
+| # | Statement | Verdict |
+| - | --------- | ------- |
+| 1 | Child read-tool responses are directly visible to Root | **Refuted.** In both runs events #3-#6 carry `branch=worker@…`; Root's only post-delegation inputs are the synthesized response and its own text. |
+| 2 | Only `finish_task` output crosses the task boundary to Root | **Supported.** In both runs the response Root receives is byte-identical to the child's `finish_task` argument. |
+| 3 | Explicitly instructing the child to carry the read payload makes that data available to Root | **Supported, qualified.** H1's payload is deep-equal to the read response. But H0 also conveyed all five *values*, in prose — so the demonstrated effect is on **structure and machine-usability**, not on presence. |
+| 4 | Root can reuse that data in a later delegation without the human restating it | **Supported.** Root reproduced all five fields from context alone. |
+| 5 | The payload survives read → finish_task → Root → save delegation without loss or mutation | **Supported, now through to the tool body.** Deep-equal at the delegation, the save call, the confirmation, and the executed write. |
+
+Scope limits: **n=1 per variant.** Statement 3's qualification rests on one
+H0 run in which the child volunteered all five values; a run that summarised
+more aggressively would strengthen the case for the instruction. Statements
+4 and 5 rest on one H1 session. H0's prose form was never carried into a
+save delegation, so it is untested whether it would survive re-parsing by the
+model as H1's JSON did.
 
 ## Failures Observed
 
