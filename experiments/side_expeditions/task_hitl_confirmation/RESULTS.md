@@ -1901,7 +1901,9 @@ G #8 18:38:09.962 root   branch=None                TEXT markdown list of Title/
 
 ### Directly demonstrated by H0-01
 
-- **Root did not receive the read tool's `FunctionResponse`.** Events #3–#6
+- **Root did not receive the read tool's `FunctionResponse` as a
+  `FunctionResponse`.** (Original wording said "did not receive"; corrected —
+  see the visibility correction at the end of this section.) Events #3–#6
   all carry `branch=worker@call_5212592`. The only post-delegation events at
   `branch=None` are #7 and #8.
 - **What Root received (F) is byte-identical to the child's `finish_task`
@@ -2023,8 +2025,8 @@ contradiction of it.
 
 | # | Statement | Verdict |
 | - | --------- | ------- |
-| 1 | Child read-tool responses are directly visible to Root | **Refuted.** In both runs events #3-#6 carry `branch=worker@…`; Root's only post-delegation inputs are the synthesized response and its own text. |
-| 2 | Only `finish_task` output crosses the task boundary to Root | **Supported.** In both runs the response Root receives is byte-identical to the child's `finish_task` argument. |
+| 1 | Child read-tool responses are directly visible to Root | **NOT DETERMINED — see correction below.** Originally recorded as "refuted"; that verdict was withdrawn. |
+| 2 | Only `finish_task` output crosses the task boundary to Root | **Supported as stated, narrowed — see correction below.** The `FunctionResponse` Root receives is byte-identical to the child's `finish_task` argument in both runs. It is *not* established that this is the only child material in Root's context. |
 | 3 | Explicitly instructing the child to carry the read payload makes that data available to Root | **Supported, qualified.** H1's payload is deep-equal to the read response. But H0 also conveyed all five *values*, in prose — so the demonstrated effect is on **structure and machine-usability**, not on presence. |
 | 4 | Root can reuse that data in a later delegation without the human restating it | **Supported.** Root reproduced all five fields from context alone. |
 | 5 | The payload survives read → finish_task → Root → save delegation without loss or mutation | **Supported, now through to the tool body.** Deep-equal at the delegation, the save call, the confirmation, and the executed write. |
@@ -2035,6 +2037,60 @@ more aggressively would strengthen the case for the instruction. Statements
 4 and 5 rest on one H1 session. H0's prose form was never carried into a
 save delegation, so it is untested whether it would survive re-parsing by the
 model as H1's JSON did.
+
+### CORRECTION — child-event visibility to Root (statements 1 and 2)
+
+The original verdicts for statements 1 and 2 were derived from `branch`
+labels in the event log: events #3-#6 carry `branch=worker@…` while Root's
+carry `branch=None`, and I concluded that child tool responses were therefore
+not visible to Root. **That inference was not verified against how ADK
+assembles an LLM request, and it is wrong as stated.**
+
+Reading `flows/llm_flows/contents.py` in 2.6.3:
+
+```python
+def _is_event_belongs_to_branch(invocation_branch, event):
+    if not invocation_branch or not event.branch:
+        return True          # Root's invocation branch is None
+```
+
+Root's invocation branch is `None`, so **branch filtering excludes nothing
+from Root's context**. Child events are not dropped — they are *transformed*
+by `_present_other_agent_message`, which rewrites another agent's events into
+`role="user"` text (`contents.py:985-1056`):
+
+```python
+f'[{event.author}] `{part.function_response.name}` tool returned result: '
+f'{part.function_response.response}'
+```
+
+prefixed by `"For context:"`. So Root's history very likely contains the read
+tool's result as narrated text, not as a `FunctionResponse`.
+
+What the traces do and do not establish:
+
+- **Established:** the `FunctionResponse` Root receives for its own `worker`
+  FunctionCall is byte-identical to the child's `finish_task` argument, in
+  both H0-01 and H1-01. The delegation call id is re-used. That part of
+  statement 2 stands.
+- **Established:** Root's *output* in both runs matched the `finish_task`
+  payload.
+- **Not established:** that the read tool's response was absent from Root's
+  context. Matching output does not demonstrate absence of the alternative
+  source, and the source reading suggests the alternative source was present.
+
+Statement 1 is therefore **withdrawn to NOT DETERMINED** rather than being
+re-verdicted in the opposite direction, since no run has tested it directly.
+Statement 2 is narrowed to a claim about the `FunctionResponse` channel
+specifically.
+
+How to settle it empirically, not yet run: a variant in which `finish_task`
+deliberately omits a field the read returned. If Root can still state the
+omitted field — the sentinel is ideal, being distinctive and otherwise
+unavailable — visibility is demonstrated directly rather than inferred.
+
+This correction does not affect statements 3, 4 or 5, which rest on payload
+comparisons rather than on visibility.
 
 ## Failures Observed
 
