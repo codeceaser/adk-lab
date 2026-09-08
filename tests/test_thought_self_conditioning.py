@@ -220,6 +220,99 @@ def test_building_strip_arm_does_not_mutate_frozen_dict(specimen, tools):
     assert json.dumps(frozen, sort_keys=True) == before
 
 
+# --- filler arm ----------------------------------------------------------
+# Token counting is stubbed so these stay offline and deterministic. The real
+# token match is asserted at runtime and recorded in arm_diff.json.
+
+
+def _fake_counter(text):
+    """One token per whitespace-separated word."""
+    return len(text.split())
+
+
+@pytest.fixture(scope="module")
+def filler_arms(specimen, tools):
+    frozen = specimen["frozen"]
+    text, achieved = probe.build_filler_text(50, _fake_counter)
+    replay, _ = probe.build_request(frozen, "replay", tools)
+    strip, _ = probe.build_request(frozen, "strip", tools)
+    filler, stats = probe.build_request(frozen, "filler", tools, filler_text=text)
+    return (
+        probe.serialize_request(replay),
+        probe.serialize_request(filler),
+        probe.serialize_request(strip),
+        stats,
+        text,
+        achieved,
+    )
+
+
+def test_build_filler_text_matches_target_length():
+    text, achieved = probe.build_filler_text(50, _fake_counter)
+    assert achieved == 50
+    assert _fake_counter(text) == 50
+
+
+def test_build_filler_text_handles_awkward_targets():
+    for target in (1, 2, 7, 613):
+        _, achieved = probe.build_filler_text(target, _fake_counter)
+        assert achieved == target
+
+
+def test_filler_arm_keeps_one_thought_part(filler_arms):
+    replay, filler, strip, stats, _, _ = filler_arms
+    assert filler["thought_text_part_count"] == replay["thought_text_part_count"] == 1
+    assert strip["thought_text_part_count"] == 0
+    assert stats["replaced_thought_text_parts"] == 1
+
+
+def test_filler_content_differs_from_replay(filler_arms):
+    replay, filler, _, _, text, _ = filler_arms
+    replay_text = [
+        p["text"] for c in replay["contents"] for p in c["parts"] if p["thought"]
+    ]
+    filler_text = [
+        p["text"] for c in filler["contents"] for p in c["parts"] if p["thought"]
+    ]
+    assert filler_text == [text]
+    assert filler_text != replay_text
+
+
+def test_filler_identical_to_replay_apart_from_thought_content(filler_arms):
+    replay, filler, strip, _, _, achieved = filler_arms
+    diff = probe.filler_diff(replay, filler, strip, 50, achieved)
+
+    assert diff["filler_identical_to_replay_after_normalizing_thought_text"] is True
+    assert diff["residual_differences_after_normalizing_thought_text"] == []
+    assert diff["thought_text_content_differs_from_replay"] is True
+    assert diff["thought_signature_equal_to_replay"] is True
+    assert diff["function_call_equal_to_replay"] is True
+    assert diff["function_response_equal_to_replay"] is True
+    assert diff["system_instruction_equal_to_replay"] is True
+    assert diff["tool_declarations_equal_to_replay"] is True
+    assert diff["generation_config_equal_to_replay"] is True
+    assert diff["thought_text_part_count_differs_from_strip"] is True
+
+
+def test_filler_arm_preserves_signature_and_ids(filler_arms):
+    replay, filler, _, _, _, _ = filler_arms
+    for predicate in (
+        lambda p: p["has_thought_signature"],
+        lambda p: p["has_function_call"],
+        lambda p: p["has_function_response"],
+    ):
+        assert _parts(replay, predicate) == _parts(filler, predicate)
+
+
+def test_filler_arm_requires_filler_text(specimen, tools):
+    with pytest.raises(ValueError):
+        probe.build_request(specimen["frozen"], "filler", tools)
+
+
+def test_filler_arm_is_a_declared_arm():
+    assert probe.ARMS == ("replay", "strip", "filler")
+
+
 # --- classifier ----------------------------------------------------------
 
 

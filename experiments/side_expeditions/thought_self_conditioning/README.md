@@ -18,17 +18,29 @@ both modes. This expedition isolates the effect of the readable summary itself.
 
 ## Design
 
-One **frozen** prior trajectory is replayed as two continuation requests:
+One **frozen** prior trajectory is replayed as three continuation requests:
 
 | Arm | Contents sent |
 | --- | --- |
 | **R — replay** | user text + `thought_summary` text + `function_call`(+signature) + `function_response` |
 | **S — strip** | user text + `function_call`(+signature) + `function_response` |
+| **F — filler** | user text + task-inert filler of the **same token length** + `function_call`(+signature) + `function_response` |
+
+ARM F exists because R and S differ in two things at once: the thought text's
+*content* and the prompt's *length*. F holds length constant with R while
+replacing the content, so the three arms separate the two:
+
+| Comparison | Isolates |
+| --- | --- |
+| R vs F | thought-text **content** (length held equal) |
+| F vs S | prompt **length** (both lack real thought content) |
+| R vs S | the two combined — the original comparison |
 
 The first model step is **not regenerated per arm**. It is read from committed
 evidence, so no stochastic first-step variation enters the comparison. Both
-arms are built by the same builder from the same frozen record; ARM S is ARM R
-minus the readable thought parts, and nothing else.
+arms are built by the same builder from the same frozen record: ARM S is ARM R
+minus the readable thought parts, and ARM F is ARM R with that part's text
+swapped for length-matched filler. Nothing else differs.
 
 Held identical across arms: `function_call` id and args, the exact recorded
 `thought_signature` bytes, `function_response` and its id, system instruction,
@@ -72,6 +84,29 @@ readable thought text and the `function_call` are **separate parts**, and the
 3199-byte signature sits on the `function_call` part. Removing the thought text
 therefore removes no signature and no action.
 
+## The filler arm
+
+The filler is built by repeating a task-inert token (`"padding "`) and
+binary-searching the repeat count against the **same model's** `count_tokens`
+endpoint, then closing any remainder with single short tokens. For the primary
+specimen the frozen thought text is 613 tokens and the filler matches it
+exactly at 613 (`filler_token_match_exact: true`).
+
+It is computed **once per specimen** and reused verbatim for every repetition,
+so the input is identical within the arm. The filler part keeps `thought=True`
+and its position in the content, so ARM F differs from ARM R only in the
+characters of that one text field — proven by
+`filler_identical_to_replay_after_normalizing_thought_text`, which normalizes
+the thought text to a sentinel in both arms and requires everything else to
+match. The probe refuses to run if that is false.
+
+**Limitation, stated plainly.** The filler is length-matched and task-inert,
+but it is not *distributionally* neutral: 613 tokens of a repeated word is not
+what a real model turn looks like. So R vs F separates "real thought content"
+from "prompt length", but it does not separate "real thought content" from
+"any coherent text of that length". A third filler variant — unrelated but
+fluent prose — would be needed for that, and this expedition does not have one.
+
 ## Model invocation
 
 `Gemini.generate_content_async(llm_request, stream=False)` — the narrowest
@@ -101,8 +136,9 @@ Expected and observed:
 
 | Arm | thought text | signature | adapter changed contents |
 | --- | --- | --- | --- |
-| replay | present | present | no |
+| replay | present (real) | present | no |
 | strip | absent | present | no |
+| filler | present (filler, same token length) | present | no |
 
 ## Behavioral classification
 
@@ -128,7 +164,7 @@ No category is treated as better than another.
 ## Validation
 
 `tests/test_thought_self_conditioning.py` runs before any model call and proves
-the nine required properties: arms identical after removing the intended
+the nine required properties, plus the filler-arm properties: arms identical after removing the intended
 difference (with a non-vacuous check that the difference exists), byte-identical
 `thought_signature` (compared by SHA-256), identical `function_call` /
 `function_response`, unchanged call and response IDs, identical tool
@@ -170,14 +206,15 @@ Tests:
 
 | File | Contents |
 | --- | --- |
-| `evidence/<specimen>_arm_diff.json` | arm-difference proof, no model calls |
+| `evidence/<specimen>_arm_diff.json` | arm-difference proof (R vs S, plus a `filler_arm` section for R vs F); no continuation calls |
 | `evidence/<specimen>_continuations_<UTC>.jsonl` | one row per continuation |
 
 Each continuation row carries `run_id`, `specimen_id`, provenance
 (`source_commit` / `source_file` / `source_run_id` / `source_request_index`),
 `arm`, `rep`, `model`, `backend`, `latency_ms`, `classification`,
-`request_before_send`, `request_after_send`, and the full `response` including
-`raw_responses`, `finish_reason` and `usage_metadata`.
+`request_before_send`, `request_after_send`, `filler_target_tokens`,
+`filler_achieved_tokens`, and the full `response` including `raw_responses`,
+`finish_reason` and `usage_metadata`.
 
 ## Scope
 

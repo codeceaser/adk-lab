@@ -70,7 +70,14 @@ SPECIMENS = {
     },
 }
 
-ARMS = ("replay", "strip")
+ARMS = ("replay", "strip", "filler")
+
+# ARM F replaces the readable thought text with task-inert filler of the SAME
+# token length, so that "thought text present" (ARM R) can be separated from
+# "prompt is longer" (which ARM R and ARM F share) and from "thought text
+# absent" (ARM S). The filler is computed once per specimen and reused verbatim
+# for every repetition, so the input is identical within the arm.
+FILLER_WORD = "padding "
 
 CATEGORIES = (
     "ASK_CLARIFICATION",
@@ -164,6 +171,66 @@ def strip_thought_text(contents) -> tuple[list, dict]:
     }
 
 
+def frozen_thought_text(frozen: dict) -> str:
+    """The readable thought text in the frozen trajectory."""
+    for content in frozen["contents"]:
+        for part in content["parts"]:
+            raw = part["raw"]
+            if raw.get("thought") and (raw.get("text") or "").strip():
+                return raw["text"]
+    raise ValueError("frozen specimen contains no readable thought text")
+
+
+def build_filler_text(target_tokens: int, count_fn, word: str = FILLER_WORD) -> tuple:
+    """Task-inert text whose token count matches `target_tokens`.
+
+    Binary-searches the repeat count, then appends single short tokens to close
+    any remainder. Returns (text, achieved_tokens). The caller records the
+    achieved count so an inexact match is visible rather than hidden.
+    """
+    if target_tokens <= 0:
+        return "", count_fn("")
+
+    high = 1
+    while count_fn(word * high) < target_tokens and high < 1 << 20:
+        high *= 2
+    low = 0
+    while low < high:
+        mid = (low + high + 1) // 2
+        if count_fn(word * mid) <= target_tokens:
+            low = mid
+        else:
+            high = mid - 1
+
+    text = word * low
+    achieved = count_fn(text)
+    # Close the remainder with single short tokens.
+    for _ in range(64):
+        if achieved >= target_tokens:
+            break
+        candidate = text + "x "
+        candidate_tokens = count_fn(candidate)
+        if candidate_tokens > target_tokens:
+            break
+        text, achieved = candidate, candidate_tokens
+
+    return text, achieved
+
+
+def make_token_counter(model):
+    """Token counter using the same client/model as the send path."""
+    from google.genai import types
+
+    def count(text: str) -> int:
+        result = model.api_client.models.count_tokens(
+            model=model.model,
+            contents=[types.Content(role="model", parts=[types.Part(text=text)])],
+        )
+        return result.total_tokens
+
+    return count
+
+
 async def canonical_tools():
     """The same BaseTool objects the lab agent uses; declarations come from ADK."""
     from adk_lab.agent import root_agent
@@ -171,7 +238,31 @@ async def canonical_tools():
     return await root_agent.canonical_tools()
 
 
-def build_request(frozen: dict, arm: str, tools: list):
+def replace_thought_text(contents, filler_text: str) -> tuple[list, dict]:
+    """Swaps readable thought text for filler, changing nothing else.
+
+    The part keeps `thought=True` and its position, so ARM F differs from ARM R
+    only in the characters of that one text field.
+    """
+    from google.genai import types
+
+    replaced = 0
+    out = []
+    for content in contents:
+        parts = []
+        for part in content.parts or []:
+            if is_strippable_thought_part(part):
+                replaced += 1
+                swapped = part.model_copy(deep=True)
+                swapped.text = filler_text
+                parts.append(swapped)
+            else:
+                parts.append(part)
+        out.append(types.Content(role=content.role, parts=parts))
+    return out, {"replaced_thought_text_parts": replaced}
+
+
+def build_request(frozen: dict, arm: str, tools: list, filler_text: str = None):
     """Builds a fresh LlmRequest for one arm.
 
     Fresh per call on purpose: `generate_content_async` mutates the request in
@@ -188,6 +279,10 @@ def build_request(frozen: dict, arm: str, tools: list):
     stats = {"stripped_thought_text_parts": 0}
     if arm == "strip":
         contents, stats = strip_thought_text(contents)
+    elif arm == "filler":
+        if filler_text is None:
+            raise ValueError("the filler arm requires filler_text")
+        contents, stats = replace_thought_text(contents, filler_text)
 
     request = LlmRequest(
         model=frozen["model"],
@@ -349,6 +444,83 @@ def arm_diff(replay_record: dict, strip_record: dict) -> dict:
     }
 
 
+def _normalize_thought_text(record: dict) -> dict:
+    """Replaces readable thought text with a sentinel so content is ignored."""
+    out = copy.deepcopy(record)
+    for content in out["contents"]:
+        for part in content["parts"]:
+            if part["thought"] and (part["text"] or "").strip():
+                part["text"] = "<THOUGHT_TEXT>"
+                part["raw"]["text"] = "<THOUGHT_TEXT>"
+    return out
+
+
+def filler_diff(
+    replay_record: dict,
+    filler_record: dict,
+    strip_record: dict,
+    target_tokens: int,
+    achieved_tokens: int,
+) -> dict:
+    """Proof that ARM F matches ARM R in shape and length but not in content."""
+    sig = lambda r: _payload_parts(r, lambda p: p["has_thought_signature"])
+    call = lambda r: _payload_parts(r, lambda p: p["has_function_call"])
+    resp = lambda r: _payload_parts(r, lambda p: p["has_function_response"])
+
+    normalized_replay = _normalize_thought_text(replay_record)
+    normalized_filler = _normalize_thought_text(filler_record)
+    residual = [
+        key
+        for key in sorted(set(normalized_replay) | set(normalized_filler))
+        if normalized_replay.get(key) != normalized_filler.get(key)
+    ]
+
+    replay_text = [
+        p["text"]
+        for p in _payload_parts_full(replay_record)
+        if p["thought"] and (p["text"] or "").strip()
+    ]
+    filler_text = [
+        p["text"]
+        for p in _payload_parts_full(filler_record)
+        if p["thought"] and (p["text"] or "").strip()
+    ]
+
+    return {
+        "identical_to_replay_except": ["model_exposed_thought_text_content"],
+        "filler_target_tokens": target_tokens,
+        "filler_achieved_tokens": achieved_tokens,
+        "filler_token_match_exact": target_tokens == achieved_tokens,
+        "thought_text_part_count_equal_to_replay": (
+            replay_record["thought_text_part_count"]
+            == filler_record["thought_text_part_count"]
+        ),
+        "thought_text_content_differs_from_replay": replay_text != filler_text,
+        "thought_signature_equal_to_replay": sig(replay_record) == sig(filler_record),
+        "function_call_equal_to_replay": call(replay_record) == call(filler_record),
+        "function_response_equal_to_replay": resp(replay_record) == resp(filler_record),
+        "system_instruction_equal_to_replay": (
+            replay_record["system_instruction"] == filler_record["system_instruction"]
+        ),
+        "tool_declarations_equal_to_replay": (
+            replay_record["tool_declarations"] == filler_record["tool_declarations"]
+        ),
+        "generation_config_equal_to_replay": (
+            replay_record["generation_config"] == filler_record["generation_config"]
+        ),
+        "thought_text_part_count_differs_from_strip": (
+            filler_record["thought_text_part_count"]
+            != strip_record["thought_text_part_count"]
+        ),
+        "residual_differences_after_normalizing_thought_text": residual,
+        "filler_identical_to_replay_after_normalizing_thought_text": not residual,
+    }
+
+
+def _payload_parts_full(record: dict) -> list:
+    return [p for c in record["contents"] for p in c["parts"]]
+
+
 # --- classification ------------------------------------------------------
 
 
@@ -416,8 +588,10 @@ def serialize_response(llm_responses: list) -> dict:
 # --- run -----------------------------------------------------------------
 
 
-async def run_continuation(model, frozen: dict, arm: str, tools: list) -> dict:
-    request, strip_stats = build_request(frozen, arm, tools)
+async def run_continuation(
+    model, frozen: dict, arm: str, tools: list, filler_text: str = None
+) -> dict:
+    request, strip_stats = build_request(frozen, arm, tools, filler_text=filler_text)
     before = serialize_request(request)
 
     started = time.perf_counter()
@@ -453,12 +627,29 @@ async def main_async(args) -> None:
     evidence_dir = Path(args.evidence_dir) if args.evidence_dir else EVIDENCE_DIR
     evidence_dir.mkdir(parents=True, exist_ok=True)
 
-    # Arm-difference proof, written before any model call.
+    # Filler is computed once and reused verbatim across every repetition.
+    model = root_agent.canonical_model
+    count_fn = make_token_counter(model)
+    target_tokens = count_fn(frozen_thought_text(frozen))
+    filler_text, achieved_tokens = build_filler_text(target_tokens, count_fn)
+
+    # Arm-difference proof, written before any continuation call.
     replay_request, _ = build_request(frozen, "replay", tools)
     strip_request, strip_stats = build_request(frozen, "strip", tools)
-    diff = arm_diff(serialize_request(replay_request), serialize_request(strip_request))
+    filler_request, filler_stats = build_request(
+        frozen, "filler", tools, filler_text=filler_text
+    )
+    replay_record = serialize_request(replay_request)
+    strip_record = serialize_request(strip_request)
+    filler_record = serialize_request(filler_request)
+
+    diff = arm_diff(replay_record, strip_record)
+    diff["filler_arm"] = filler_diff(
+        replay_record, filler_record, strip_record, target_tokens, achieved_tokens
+    )
     diff.update(
         {
+            **filler_stats,
             "specimen_id": spec["specimen_id"],
             "source_commit": spec["source_commit"],
             "source_file": spec["source_file"],
@@ -475,6 +666,12 @@ async def main_async(args) -> None:
     print(f"  thought_signature_equal: {diff['thought_signature_equal']}")
     print(f"  replay thought_text parts: {diff['replay_thought_text_part_count']} "
           f"| strip: {diff['strip_thought_text_part_count']}")
+    filler = diff["filler_arm"]
+    print(f"  filler tokens: target {filler['filler_target_tokens']} "
+          f"achieved {filler['filler_achieved_tokens']} "
+          f"exact={filler['filler_token_match_exact']}")
+    print("  filler identical to replay after normalizing thought text: "
+          f"{filler['filler_identical_to_replay_after_normalizing_thought_text']}")
 
     if args.arm_diff_only:
         return
@@ -484,7 +681,14 @@ async def main_async(args) -> None:
             f"residual: {diff['residual_differences_after_removing_thought_text']}"
         )
 
-    model = root_agent.canonical_model
+    if not diff["filler_arm"][
+        "filler_identical_to_replay_after_normalizing_thought_text"
+    ]:
+        raise SystemExit(
+            "filler arm differs from replay by more than the thought text content; "
+            "refusing to run"
+        )
+
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out_path = (
         evidence_dir
@@ -495,9 +699,13 @@ async def main_async(args) -> None:
     with out_path.open("w", encoding="utf-8") as fh:
         for rep in range(1, args.reps + 1):
             for arm in ARMS:
-                record = await run_continuation(model, frozen, arm, tools)
+                record = await run_continuation(
+                    model, frozen, arm, tools, filler_text=filler_text
+                )
                 record.update(
                     {
+                        "filler_target_tokens": target_tokens,
+                        "filler_achieved_tokens": achieved_tokens,
                         "run_id": f"{spec['specimen_id']}-{arm}-{rep:02d}",
                         "specimen_id": spec["specimen_id"],
                         "source_commit": spec["source_commit"],
