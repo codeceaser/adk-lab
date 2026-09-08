@@ -7,6 +7,10 @@ not touch execution. Run it while `adk web` is still up.
         --app t0_task_plain_tool --session <session_id> --run-marker T0-R01
 
 Omit --session to list the sessions for the app and exit.
+
+Evidence lands in this expedition's evidence/ dir by default. Pass
+--evidence-dir to send it somewhere else, so a run belonging to a different
+experiment does not get filed under this one.
 """
 
 from __future__ import annotations
@@ -31,7 +35,14 @@ def main() -> None:
     parser.add_argument("--user", default="user")
     parser.add_argument("--session")
     parser.add_argument("--run-marker", required=False)
+    parser.add_argument(
+        "--evidence-dir",
+        default=None,
+        help="Directory to write evidence into (default: this expedition's evidence/).",
+    )
     args = parser.parse_args()
+
+    evidence_dir = Path(args.evidence_dir) if args.evidence_dir else EVIDENCE_DIR
 
     root = f"{args.base_url}/apps/{args.app}/users/{args.user}/sessions"
 
@@ -42,12 +53,12 @@ def main() -> None:
 
     session = _get(f"{root}/{args.session}")
     name = args.run_marker or args.session
-    EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+    evidence_dir.mkdir(parents=True, exist_ok=True)
 
-    session_path = EVIDENCE_DIR / f"{name}_session.json"
+    session_path = evidence_dir / f"{name}_session.json"
     session_path.write_text(json.dumps(session, indent=2), encoding="utf-8")
 
-    events_path = EVIDENCE_DIR / f"{name}_events.jsonl"
+    events_path = evidence_dir / f"{name}_events.jsonl"
     with events_path.open("w", encoding="utf-8") as fh:
         for event in session.get("events", []):
             fh.write(json.dumps(event) + "\n")
