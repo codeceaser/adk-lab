@@ -5,6 +5,8 @@ tool contract from them; nothing here wraps, registers or decorates them.
 """
 
 from google.adk.agents import LlmAgent
+from google.adk.planners import BuiltInPlanner
+from google.genai import types
 
 from .tools import get_employee, validate_proposal_fields
 
@@ -24,4 +26,9 @@ root_agent = LlmAgent(
         " or Assessment Unit information — report only what a tool returned."
     ),
     tools=[get_employee, wrapped_get_assessment_unit, validate_proposal_fields],
+    planner=BuiltInPlanner(
+        thinking_config=types.ThinkingConfig(
+            include_thoughts=True,
+        )
+    ),
 )
