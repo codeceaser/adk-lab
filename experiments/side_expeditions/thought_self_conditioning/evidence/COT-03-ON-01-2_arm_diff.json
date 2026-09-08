@@ -13,6 +13,26 @@
   "strip_thought_text_part_count": 0,
   "residual_differences_after_removing_thought_text": [],
   "arms_identical_after_removing_thought_text": true,
+  "filler_arm": {
+    "identical_to_replay_except": [
+      "model_exposed_thought_text_content"
+    ],
+    "filler_target_tokens": 613,
+    "filler_achieved_tokens": 613,
+    "filler_token_match_exact": true,
+    "thought_text_part_count_equal_to_replay": true,
+    "thought_text_content_differs_from_replay": true,
+    "thought_signature_equal_to_replay": true,
+    "function_call_equal_to_replay": true,
+    "function_response_equal_to_replay": true,
+    "system_instruction_equal_to_replay": true,
+    "tool_declarations_equal_to_replay": true,
+    "generation_config_equal_to_replay": true,
+    "thought_text_part_count_differs_from_strip": true,
+    "residual_differences_after_normalizing_thought_text": [],
+    "filler_identical_to_replay_after_normalizing_thought_text": true
+  },
+  "replaced_thought_text_parts": 1,
   "specimen_id": "COT-03-ON-01#2",
   "source_commit": "fa019fe267a5f1b931b9d0d82d6aa115541a85f7",
   "source_file": "experiments/side_expeditions/thought_context_replay/evidence/COT-03-ON-01_llm_requests.jsonl",
