@@ -1,0 +1,23 @@
+{
+  "identical_except": [
+    "model_exposed_thought_text"
+  ],
+  "thought_signature_equal": true,
+  "function_call_equal": true,
+  "function_response_equal": true,
+  "system_instruction_equal": true,
+  "tool_declarations_equal": true,
+  "model_equal": true,
+  "generation_config_equal": true,
+  "replay_thought_text_part_count": 1,
+  "strip_thought_text_part_count": 0,
+  "residual_differences_after_removing_thought_text": [],
+  "arms_identical_after_removing_thought_text": true,
+  "specimen_id": "COT-02-ON-01#2",
+  "source_commit": "fa019fe267a5f1b931b9d0d82d6aa115541a85f7",
+  "source_file": "experiments/side_expeditions/thought_context_replay/evidence/COT-02-ON-01_llm_requests.jsonl",
+  "source_run_id": "COT-02-ON-01",
+  "source_request_index": 2,
+  "stripped_thought_text_parts": 1,
+  "retained_thought_parts_bearing_other_payload": 0
+}
